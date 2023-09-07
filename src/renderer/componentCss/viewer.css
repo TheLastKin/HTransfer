@@ -1,0 +1,19 @@
+.image_viewer{
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgb(32, 32, 32);
+  z-index: -1;
+  top: 0;
+  left: 0;
+  opacity: 0;
+  transition: opacity 0.45s ease-in;
+}
+.viewer_image{
+  position: relative;
+  max-height: 90vh;
+  max-width: 90vw;
+}

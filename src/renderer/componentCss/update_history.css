@@ -1,0 +1,33 @@
+.update_history{
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 25px;
+  cursor: pointer;
+}
+.update_status{
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 70px;
+  height: 100%;
+  font-size: 14px;
+  color: white;
+  background-color: rgb(84, 223, 84);
+}
+.updated_image{
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  height: 100%;
+  font-size: 14px;
+  color: white;
+  padding-left: 5px;
+  background-color: rgba(0, 0, 0, 0.25);
+}
+.updated_history:nth-child(n+2){
+  margin-top: 4px;
+}

@@ -1,0 +1,198 @@
+.add_chapter{
+  position: relative;
+  display: flex;
+  width: 100%;
+  height: 35px;
+}
+#add_chapter_input{
+  position: relative;
+  flex: 1;
+  height: 100%;
+  background: none;
+  outline: none;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  border-bottom: 1px solid white;
+  caret-color: white;
+  font-size: 16px;
+  color: rgb(255, 255, 255);
+  &::placeholder{
+    color: white;
+    font-size: 16px;
+  }
+}
+.add_chapter_button{
+  position: relative;
+  width: 60px;
+  height: 100%;
+  background-color: rgb(85, 118, 190);
+  border: 1px solid rgb(85, 118, 190);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: white;
+  cursor: pointer;
+}
+.chapter_view{
+  position: relative;
+  flex: 1;
+  height: calc(100% - 420px);
+}
+.chapter_heading{
+  position: relative;
+  width: 100%;
+  height: 60px;
+  padding-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  &>span{
+    width: 80%;
+    font-size: 22px;
+    font-weight: bold;
+    text-align: center;
+    color: white;
+  }
+}
+.tab_view{
+  position: relative;
+  display: block;
+  width: 100%;
+  height: calc(100% - 105px);
+  overflow-x: hidden;
+}
+.tab_view_content{
+  position: relative;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  transition: left 0.35s ease-out;
+  &>div{
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  &>.chapter_image_tab{
+    left: 100%;
+  }
+}
+.chapter{
+  position: relative;
+  display: flex;
+  width: 100%;
+  height: 45px;
+  align-items: center;
+  background-color: rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+  cursor: pointer;
+}
+.chapter:nth-child(n+2){
+  margin-top: 5px;
+}
+.chapter_left{
+  flex: 1;
+  padding: 0 5px;
+  &>span{
+    position: relative;
+    display: block;
+  }
+  &>span:first-child{
+    font-size: 18px;
+    color: rgb(165, 193, 253);
+    font-weight: bold;
+  }
+  &>span:last-child{
+    font-size: 12px;
+    margin-top: 3px;
+  }
+}
+.chapter_no_image{
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  &>span{
+    font-size: 16px;
+    text-align: center;
+  }
+}
+.go_back{
+  position: absolute;
+  left: 0;
+  display: none;
+  transform: rotate(-90deg);
+  color: white;
+  font-size: 18px;
+  cursor: pointer;
+}
+.chapter_image{
+  position: relative;
+  display: flex;
+  align-items: center;
+  font-size: 16px;
+  color: white;
+  flex: 1;
+  height: 25px;
+  &:hover{
+    background-color: rgba(255, 255, 255, 0.15);
+  }
+  &>.chapter_image_index:focus{
+    outline: none;
+    border: none;
+  }
+  &>.chapter_image_name{
+    flex: 1;
+    cursor: default;
+  }
+  &>.delete_chapter_image{
+    position: absolute;
+    display: none;
+    right: 5px;
+    padding: 3px 4px 4px 4px;
+    background-color: white;
+    color: red;
+    font-size: 11px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  &:hover>.delete_chapter_image{
+    display: block;
+  }
+}
+.chapter_image:nth-child(n+2){
+  margin-top: 3px;
+}
+.chapter_menu{
+  position: absolute;
+  display: none;
+  top: 0;
+  left: 0;
+  width: 120px;
+  height: 60px;
+  background-color: rgba(31, 31, 31, 0.8);
+  &>ul{
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    &>li{
+      display: flex;
+      align-items: center;
+      width: calc(100% - 10px);
+      height: 20px;
+      color: white;
+      font-size: 14px;
+      padding: 0 5px;
+      cursor: pointer;
+    }
+    &>li:hover{
+      background-color: rgba(155, 155, 155, 0.25);
+    }
+  }
+}
