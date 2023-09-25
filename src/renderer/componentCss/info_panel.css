@@ -23,6 +23,8 @@
   position: relative;
   font-size: 14px;
   margin-top: 15px;
+  letter-spacing: 0.8px;
+  line-height: 20px;
   word-wrap: break-word;
   word-break: break-all;
 }
@@ -44,20 +46,41 @@
 }
 .info_tags{
   display: flex;
+  align-items: flex-start;
 }
 .info_tags>.heading{
   position: relative;
+  width: 40px;
   top: 3px;
 }
 .info_tag_list{
   position: relative;
   display: flex;
-  margin-left: 10px;
+  flex-wrap: wrap;
+  top: -5px;
 }
 .info_tag{
   position: relative;
+  width: fit-content;
   padding: 3px 5px;
+  cursor: pointer;
+  margin-right: 5px;
+  margin-top: 5px;
 }
-.info_tag:nth-child(n+2){
-  margin-left: 5px;
+.info_chapters{
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+}
+.info_chapter_name{
+  font-size: 16px;
+  font-weight: bold;
+  color: rgb(165, 193, 253);
+  cursor: pointer;
+}
+.info_sd{
+  font-size: 18px !important;
+  font-weight: bold;
+  color: chartreuse;
+  margin-top: 35px !important;
 }

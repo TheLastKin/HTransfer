@@ -1,0 +1,202 @@
+.add_tags{
+  position: relative;
+  display: flex;
+  width: 100%;
+  height: 35px;
+}
+#add_tag_input{
+  position: relative;
+  flex: 1;
+  height: 34px;
+  border-top: 1px solid rgba(255, 255, 255, 0);
+  border-bottom: 1px solid white;
+  outline: none;
+  background: none;
+  border-left: none;
+  border-right: none;
+  caret-color: white;
+  font-size: 16px;
+  color: white;
+  &::placeholder{
+    color: white;
+    font-size: 16px;
+  }
+}
+.tag_type{
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+  height: 100%;
+  background-color: rgb(85, 118, 190);
+  border: 1px solid rgb(85, 118, 190);
+  cursor: pointer;
+  font-size: 12px;
+  color: white;
+}
+.tags{
+  position: relative;
+  display: flex;
+  width: 100%;
+  height: 120px;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  overflow-y: auto;
+  &>div{
+    position: relative;
+    width: fit-content;
+    height: fit-content;
+    max-width: 250px;
+    padding: 3px 5px;
+    margin: 5px 3px 0 3px;
+    cursor: pointer;
+  }
+  &>div:hover{
+    opacity: 0.8;
+  }
+}
+.common_tag{
+  background-color: rgb(85, 118, 190);
+}
+.special_tag{
+  background-color: rgb(221, 34, 50);
+}
+.char_tag{
+  background-color: rgb(181, 184, 6);
+}
+.tag_update_record{
+  position: relative;
+  margin-top: 15px;
+  width: 100%;
+  height: calc(200px - 32px);
+  display: block;
+  border: 2px dashed rgb(122, 245, 122);
+}
+.empty_record{
+  position: relative;
+  flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.empty_record>span{
+  width: 90%;
+  text-align: center;
+  cursor: default;
+  font-size: 16px;
+  color: rgb(122, 245, 122);
+}
+.tag_actions{
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-top: 12px;
+}
+.quick_match{
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 140px;
+  height: 20px;
+  background-color: rgba(22, 22, 22, 0.35);
+  border-radius: 3px;
+  cursor: pointer;
+  &:hover{
+    background-color: rgba(22, 22, 22, 0.45);
+  }
+  &>.edit_icon{
+    position: relative;
+    font-size: 14px;
+  }
+  &>span{
+    position: relative;
+    font-size: 14px;
+  }
+}
+.tooltip{
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  left: 142px;
+  top: -3px;
+}
+.tooltip>.tooltip_text{
+  position: absolute;
+  top: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  width: 220px;
+  height: 60px;
+  padding: 0 5px;
+  border: 1px solid white;
+  border-radius: 8px;
+  opacity: 0;
+  z-index: -1;
+  pointer-events: none;
+  transition: top 0.3s ease-out, opacity 0.3s ease-out;
+}
+.question_icon{
+  font-size: 14px;
+}
+.tooltip:hover .tooltip_text{
+  top: 22px;
+  opacity: 1;
+  z-index: 2;
+}
+.update_records{
+  position: relative;
+  flex: 1;
+  height: calc(100% - 16px);
+  margin: 8px 5px;
+  overflow-y: auto;
+}
+.processing{
+  position: absolute;
+  display: none;
+  width: fit-content;
+  height: 20px;
+  left: -2px;
+  top: -20px;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  background-color: rgb(122, 245, 122, 0.85);
+  padding: 0 5px;
+  &>svg{
+    font-size: 14px;
+    animation: fullRotate 1.5s linear infinite;
+  }
+  &>span{
+    position: relative;
+    font-size: 14px;
+    margin-left: 3px;
+    top: -1px;
+  }
+}
+@keyframes fullRotate {
+  100%{
+    transform: rotate(360deg);
+  }
+}
+.clear{
+  position: absolute;
+  top: -20px;
+  right: -2px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+  height: 20px;
+  background-color: rgb(122, 245, 122, 0.85);
+  font-size: 14px;
+  cursor: pointer;
+  user-select: none;
+}

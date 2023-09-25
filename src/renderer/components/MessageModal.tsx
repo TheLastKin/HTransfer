@@ -1,35 +1,42 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useContext } from 'react';
 import '../componentCss/modal.css'
+import { ModalContext } from 'renderer/constant/context';
 
-type ModalProps = {
-  visible: boolean,
-  message: string,
-  hasBackdrop?: boolean,
-  onBackdropClicked?: React.MouseEventHandler
-}
-
-const MessageModal = ({ visible, message, hasBackdrop = true, onBackdropClicked }: ModalProps) => {
+const MessageModal = () => {
+  const { modal, setModal } = useContext(ModalContext)
 
   useEffect(() => {
-    const modal = document.querySelector(".message_modal") as HTMLElement
-    if(visible){
-      modal.style.transition = ""
-      modal.style.opacity = "1"
-      modal.style.zIndex = "3"
+    const container = document.querySelector(".message_modal") as HTMLElement
+    if(modal.visible){
+      container.style.transition = ""
+      container.style.opacity = "1"
+      container.style.zIndex = "3"
     }else{
-      modal.style.transition = "opacity 0.35s ease-out"
-      modal.style.opacity = "0";
-      modal.ontransitionend = () => {
-        modal.style.zIndex = "-1"
+      container.style.transition = "opacity 0.35s ease-out"
+      container.style.opacity = "0";
+      container.ontransitionend = () => {
+        container.style.zIndex = "-1"
       }
     }
-  }, [visible])
+  }, [modal])
+
+  const onBackdropClicked = () => setModal({...modal, visible: false})
 
   return (
     <div className='message_modal'>
-      { hasBackdrop && <div className="modal_background" onClick={onBackdropClicked}></div> }
+      <div className="modal_background" onClick={onBackdropClicked}></div>
       <div className="message_box">
-        <p className="message">{message}</p>
+        <p className="message">{modal.message}</p>
+        { modal.onSubmit &&
+          <div className='modal_actions'>
+            <div className="submit_button" onClick={modal.onSubmit}>
+              Confirm
+            </div>
+            <div className="cancel_button" onClick={onBackdropClicked}>
+              Cancel
+            </div>
+          </div>
+        }
       </div>
     </div>
   );

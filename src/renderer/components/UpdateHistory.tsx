@@ -2,21 +2,19 @@ import React from 'react';
 import '../componentCss/update_history.css'
 import { UpdateHistoryProps } from 'renderer/constant/types';
 
-const UpdateHistory = ({ name, path }: UpdateHistoryProps) => {
+const UpdateHistory = ({ name, path, tags }: UpdateHistoryProps) => {
 
   const onMouseEnter = (path: string) => (e: React.MouseEvent) => {
-    const imgCard = document.querySelector(`.img_card[data-path="${path.replace(/\\/g, "\\\\")}"]`) as HTMLElement;
+    const imgCard = document.querySelector(`.image_card[data-path="${path.replace(/\\/g, "\\\\")}"]`) as HTMLElement;
     if(imgCard){
-      imgCard.style.borderColor = "blue"
-      imgCard.style.boxShadow = "0 0 5px 1px rgba(0, 0, 255, 0.65)"
+      imgCard.className = "image_card image_card_highlight"
     }
   }
 
   const onMouseLeave = (path: string) => (e: React.MouseEvent) => {
-    const imgCard = document.querySelector(`.img_card[data-path="${path.replace(/\\/g, "\\\\")}"]`) as HTMLElement;
+    const imgCard = document.querySelector(`.image_card[data-path="${path.replace(/\\/g, "\\\\")}"]`) as HTMLElement;
     if(imgCard){
-      imgCard.style.borderColor = ""
-      imgCard.style.boxShadow = ""
+      imgCard.className = "image_card"
     }
   }
 

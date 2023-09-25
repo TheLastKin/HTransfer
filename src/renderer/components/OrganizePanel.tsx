@@ -10,13 +10,17 @@ type OrganizePanelProps = {
   chapter: Chapter,
   chapters: Chapter[];
   updateHistory: UpdateHistoryProps[];
-  actionType: string;
+  addType: string,
   onTagListChanged: (args: any) => void;
   onChapterInput: (args: any) => void;
   onChapterSelected: (arg: Chapter) => void;
   onChapterAction: (isAddingImage: boolean) => void;
   onViewingChapter: (chapter: Chapter) => void;
   onDeletingChapterImage: (imageIndex: number) => void;
+  onChangingImageIndex: (fromIndex: number, toIndex: number) => void;
+  onDeletingChapter: (chapterName: string) => void;
+  onQuickMatch: () => void;
+  clearHistory: () => void;
 };
 
 function OrganizePanel({
@@ -24,28 +28,34 @@ function OrganizePanel({
   chapter,
   chapters,
   updateHistory,
-  actionType,
+  addType,
   onTagListChanged,
   onChapterInput,
   onChapterSelected,
   onChapterAction,
   onViewingChapter,
-  onDeletingChapterImage
+  onDeletingChapterImage,
+  onChangingImageIndex,
+  onDeletingChapter,
+  onQuickMatch,
+  clearHistory
 }: OrganizePanelProps) {
 
   return (
     <div className="organize_view">
-      <TagView tags={tags} updateHistory={updateHistory} actionType={actionType} onTagListChanged={onTagListChanged}/>
+      <TagView tags={tags} addType={addType} updateHistory={updateHistory} onTagListChanged={onTagListChanged} onQuickMatch={onQuickMatch} clearHistory={clearHistory}/>
       <div className="horizontal_divider" />
       <ChapterView
         chapter={chapter}
         chapters={chapters}
-        actionType={actionType}
+        addType={addType}
         onChapterSelected={onChapterSelected}
         onChapterInput={onChapterInput}
         onChapterAction={onChapterAction}
         onViewingChapter={onViewingChapter}
         onDeletingChapterImage={onDeletingChapterImage}
+        onChangingImageIndex={onChangingImageIndex}
+        onDeletingChapter={onDeletingChapter}
       />
     </div>
   );

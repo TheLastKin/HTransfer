@@ -1,66 +1,26 @@
+import React, { useEffect, useState, useRef, useContext } from 'react';
 import { MemoryRouter as Router, Routes, Route } from 'react-router-dom';
-import icon from '../../assets/icon.svg';
 import './App.css';
 import { FcOpenedFolder } from 'react-icons/fc';
-import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { BiSolidChevronDown } from 'react-icons/bi';
 import MessageModal from './components/MessageModal';
 import ImageViewer from './components/ImageViewer';
-import UpdateHistory from './components/UpdateHistory';
-import { Chapter, ImageInfo, Tag, UpdateHistoryProps } from './constant/types';
-import ChapterView from './components/ChapterView';
+import { Action, Chapter, ImageInfo, ModalProps, Tag, UpdateHistoryProps, actions, initFilter } from './constant/types';
 import InfoPanel from './components/InfoPanel';
-import { IoInformationCircleOutline } from 'react-icons/io5'
 import OrganizePanel from './components/OrganizePanel';
+import FilterPanel from './components/FilterPanel';
+import { AppContext, ModalContext } from './constant/context';
+import { Buffer } from 'buffer';
+import { useImageInfos } from './constant/hooks';
+import ImageScrollView from './components/ImageScrollView';
+const extract = require('png-chunks-extract')
+const text = require('png-chunk-text')
+
 
 // todo unload images -2/+2 page using intersect observer
 
-const getAverageRGB = (imgEl: HTMLImageElement) => {
-  const blockSize = 5; // only visit every 5 pixels
-  const defaultRGB = { r: 0, g: 0, b: 0 }; // for non-supporting envs
-  const canvas = document.createElement('canvas');
-  const context = canvas.getContext && canvas.getContext('2d');
-  let data;
-  let width;
-  let height;
-  let i = -4;
-  let length;
-  const rgb = { r: 0, g: 0, b: 0 };
-  let count = 0;
-
-  if (!context) {
-    return defaultRGB;
-  }
-
-  height = canvas.height =
-    imgEl.naturalHeight || imgEl.offsetHeight || imgEl.height;
-  width = canvas.width = imgEl.naturalWidth || imgEl.offsetWidth || imgEl.width;
-
-  context.drawImage(imgEl, 0, 0);
-
-  data = context.getImageData(0, 0, width, height);
-
-  length = data.data.length;
-
-  while ((i += blockSize * 4) < length) {
-    ++count;
-    rgb.r += data.data[i];
-    rgb.g += data.data[i + 1];
-    rgb.b += data.data[i + 2];
-  }
-
-  // ~~ used to floor values
-  rgb.r = ~~(rgb.r / count);
-  rgb.g = ~~(rgb.g / count);
-  rgb.b = ~~(rgb.b / count);
-
-  return rgb;
-};
-
 const maxImageLoad = 30;
-let toColumn = 1;
 let isViewingFullScreen = false;
-let isLoadingNextPage = false;
 let viewIndex = 0;
 let showDropDown = false;
 let folderIndex = -1;
@@ -71,34 +31,38 @@ let prevUpdatedImage = "";
 
 function Hello() {
   const [images, setImages] = useState<ImageInfo[]>([]);
-  const [page, setPage] = useState(1);
   const [paths, setPaths] = useState([]);
-  const [messageModal, setMessageModal] = useState({ visible: false, message: "" })
+  const { modal, setModal } = useContext(ModalContext)
   const [updateHistory, setUpdateHistory] = useState<UpdateHistoryProps[]>([])
-  const [imageInfo, setImageInfo] = useState<ImageInfo>({ name: "", path: "" })
+  const [imageInfo, setImageInfo] = useState<ImageInfo | null>(null)
   const [tags, setTags] = useState<Tag[]>([]);
   const [chapter, setChapter] = useState<Chapter>({ name: "", images: [], createDate: 0, modifiedDate: 0 })
   const [chapters, setChapters] = useState<Chapter[]>([])
-  const [actionType, setActionType] = useState<string>("addTag")
-  const pageRef = useRef<number>(0);
+  const [addType, setAddType] = useState<string>(actions.ADD_TAG)
+  const { savedInfos, saveImageInfos } = useContext(AppContext)
   const imagesRef = useRef<any>();
   const pathsRef = useRef<any>([]);
-  const imageInfoRef = useRef<ImageInfo>(imageInfo);
+  const imageInfoRef = useRef<ImageInfo | null>();
   const tagsRef = useRef<Tag[]>([]);
   const updateHistoryRef = useRef<UpdateHistoryProps[]>([]);
-  const actionTypeRef = useRef<string>("");
+  const addTypeRef = useRef<string>();
   const chapterRef = useRef<Chapter>();
   const chaptersRef = useRef<Chapter[]>([]);
 
-  pageRef.current = page;
   imagesRef.current = images;
   pathsRef.current = paths;
   imageInfoRef.current = imageInfo;
   tagsRef.current = tags;
   updateHistoryRef.current = updateHistory;
-  actionTypeRef.current = actionType;
+  addTypeRef.current = addType;
   chapterRef.current = chapter;
   chaptersRef.current = chapters;
+
+  useEffect(() => {
+    if(chapter.name){
+      setChapter(chapters[chapters.findIndex((c: Chapter) => c.name === chapter.name)])
+    }
+  }, [chapters])
 
   const loadDirectoryPaths = () => {
     const rawJSON = localStorage.getItem("savedPaths")
@@ -141,7 +105,7 @@ function Hello() {
             viewIndex === imagesRef.current.length - 1 ? 1 : viewIndex + 1;
         }
         const image = document.querySelector(`.viewer_image`) as HTMLImageElement;
-        image.src = `http://localhost:4000/image/${imagesRef.current[viewIndex].name}`;
+        image.src = `http://localhost:4000/${imagesRef.current[viewIndex].path.substring(3).replace(/\\/g, "/").replace(/ /g, "_")}`;
         removeOverlap();
       }
     };
@@ -161,20 +125,18 @@ function Hello() {
     }
   };
 
-  const refreshScrollView = (dirPath: string) => {
-    const columns = document.querySelectorAll('.column');
-    for (const column of columns) {
-      (column as HTMLElement).innerHTML = '';
-    }
-    (document.querySelector('.folder_source>span') as HTMLSpanElement).innerText = dirPath;
+  const updateSourceText = (dirPath: string) => {
+    // const columns = document.querySelectorAll(".column") as NodeListOf<HTMLElement>
+    // for(let column of columns){
+    //   column.innerHTML = ""
+    // }
+    (document.querySelector('.folder_source>div>span') as HTMLSpanElement).innerText = dirPath
   }
 
   const loadImageFromDirectory = async (dirPath: string, images: ImageInfo[]) => {
     if (dirPath) {
-      toColumn = 1
       saveDirPath(dirPath);
-      refreshScrollView(dirPath);
-      const scrollView = document.querySelector('.scroll_view') as HTMLElement;
+      updateSourceText(dirPath);
       const res = await fetch('http://localhost:4000/streamImage', {
         method: 'POST',
         mode: 'cors',
@@ -184,135 +146,31 @@ function Hello() {
         },
         body: JSON.stringify({ dirURL: dirPath }),
       });
-      const status = await res.json();
-      if (status) {
-        appendImagesToUI(images.slice(0, maxImageLoad));
-        if (maxImageLoad < images.length) {
-          scrollView.onscroll = () => {
-            if (
-              scrollView.clientHeight + scrollView.scrollTop >=
-                scrollView.scrollHeight &&
-              !isLoadingNextPage
-            ) {
-              isLoadingNextPage = true;
-              appendImagesToUI(
-                images.slice(
-                  maxImageLoad * pageRef.current,
-                  maxImageLoad * (pageRef.current + 1)
-                )
-              );
-              setPage(pageRef.current + 1);
-            }
-          };
-        }
-      }
     }
   };
 
   const openDirectory = async () => {
     const data = await window.electron.chooseDirectory(maxImageLoad);
     if(data){
-      setImages(data);
+      setImages(data.images);
       loadImageFromDirectory(data.dirPath, data.images)
     }
   }
 
-  const appendImagesToUI = (images: ImageInfo[]) => {
-    for (const image of images) {
-      const imagePath = image.path;
-      const imgCard = document.createElement('div');
-      const imgCardContent = document.createElement('div');
-      const imgTag = document.createElement('img');
-      const imgAvgColor = document.createElement('div');
-      const imgPreload = document.createElement('div');
-      const infoIcon = document.createElement('div');
-      imgCard.className = 'img_card';
-      imgCardContent.className = 'img_card_content'
-      imgTag.className = 'image';
-      imgPreload.className = 'image_preload';
-      imgAvgColor.className = 'img_avg_color';
-      infoIcon.className = 'info_icon';
-      infoIcon.innerText = "i";
-      imgTag.src = `http://localhost:4000/${image.path.substring(3).replace(/\\/g, "/").replace(/ /g, "_")}`;
-      imgTag.crossOrigin = 'Anonymous';
-      imgTag.draggable = false;
-      imgCard.dataset.path = imagePath;
-      imgCard.appendChild(imgCardContent);
-      imgCardContent.appendChild(imgPreload);
-      imgCardContent.appendChild(infoIcon);
-      const column = document.querySelector(
-        `.column:nth-child(${toColumn})`
-      ) as HTMLElement;
-      column.appendChild(imgCard);
-      toColumn = toColumn === 5 ? 1 : toColumn + 1;
-      imgTag.onload = () => {
-        const rgb = getAverageRGB(imgTag);
-        imgAvgColor.style.backgroundColor = `rgb(${rgb.r},${rgb.g}, ${rgb.b})`;
-        imgCardContent.removeChild(imgPreload);
-        imgCardContent.appendChild(imgAvgColor);
-        imgCardContent.appendChild(imgTag);
-        if (
-          images.findIndex((img) => img.name === image.name) ===
-          images.length - 1
-        ) {
-          isLoadingNextPage = false;
-        }
-        imgTag.onclick = (e: MouseEvent) =>
-          toFullScreen(
-            e,
-            imgTag.naturalWidth,
-            imgTag.naturalHeight,
-            images.findIndex((img) => img.name === image.name)
-          );
-        imgTag.oncontextmenu = (e: MouseEvent) => {
-          if(actionTypeRef.current === "addTag"){
-            addTagToImage(image.name, imagePath, image.type, image.createdDate)
-          }else{
-            addImageToChapter(image.name, imagePath)
-          }
-        }
-        imgCard.onmouseenter = (e: MouseEvent) => {
-          if(!isQuickAdding){
-            infoIcon.style.right = "5px"
-            infoIcon.style.rotate = "0deg"
-          }else{
-            if(actionTypeRef.current === "addTag"){
-              addTagToImage(image.name, imagePath, image.type, image.createdDate)
-            }else{
-              addImageToChapter(image.name, imagePath)
-            }
-          }
-        }
-        imgCard.onmouseleave = (e: MouseEvent) => {
-          if(!isQuickAdding){
-            infoIcon.style.right = "-20px"
-            infoIcon.style.rotate = "75deg"
-          }
-          if(prevUpdatedImage === image.name){
-            prevUpdatedImage = ""
-          }
-        }
-        infoIcon.onclick = (e: MouseEvent) => showImageInfo(e, { ...image, path: imagePath, width: imgTag.naturalWidth, height: imgTag.naturalHeight })
-      };
-    }
-  };
-
-  const showImageInfo = (e: MouseEvent, imageInfo: ImageInfo) => {
-    if(imageInfo.name === (document.querySelector(".info_name") as HTMLElement).innerText){
+  const showImageInfo = (info: ImageInfo) => {
+    if(info.name === imageInfo?.name && info.path === imageInfo?.path && showInfoPanel){
       return;
     }
-    const rawJSON = localStorage.getItem("imageInfos");
-    let infos: ImageInfo[] = []
-    if(rawJSON){
-      infos = JSON.parse(rawJSON)
-    }
-    let savedInfo = infos.find(i => i.path === imageInfo.path) || {};
-    setImageInfo({ ...imageInfo, ...savedInfo });
+    setImageInfo({
+      ...info,
+      chapters: chaptersRef.current
+      .filter((c: Chapter) => c.images?.findIndex(i => i.name === info.name && i.path === info.path) !== -1)
+      .map((c: Chapter) => c.name) });
     const infoPanel = document.querySelector(".info_panel") as HTMLElement;
-    const scrollView = document.querySelector(".scroll_view") as HTMLElement;
+    const scrollView = document.querySelector(".image_scroll_view") as HTMLElement;
     if(!showInfoPanel){
       scrollView.style.transition = "margin-right 0.3s ease-out"
-      scrollView.style.marginRight = `${infoPanel.clientWidth}px`
+      scrollView.style.marginRight = `min(35%, 405px)`
       infoPanel.style.transition = "top 0.4s ease-out 0.3s"
       infoPanel.style.top = "0"
     }
@@ -320,9 +178,7 @@ function Hello() {
   }
 
   const toFullScreen = (
-    e: MouseEvent,
-    width: number,
-    height: number,
+    e: React.MouseEvent,
     index: number
   ) => {
     if (isViewingFullScreen) return;
@@ -330,6 +186,7 @@ function Hello() {
     viewIndex = index;
     (document.querySelector(".viewer_image") as HTMLImageElement).src = ""
     const image = e.target as HTMLImageElement;
+    const naturalHeight = image.naturalHeight;
     const container = document.querySelector('.content') as HTMLElement;
     const bounds = image.getBoundingClientRect();
     const tag = document.createElement('img');
@@ -341,7 +198,7 @@ function Hello() {
     tag.src = image.src;
     const scaleFactor = Math.min(
       (window.innerHeight * 0.95) / image.clientHeight,
-      height / image.clientHeight
+      naturalHeight / image.clientHeight
     );
     tag.onload = () => {
       container.appendChild(tag);
@@ -365,36 +222,85 @@ function Hello() {
           isViewingFullScreen = false;
         }, 450);
       };
+      document.onvisibilitychange = () => {
+        if(document.visibilityState === "visible"){
+          setTimeout(() => {
+            modal.onclick = () => {
+              image.style.opacity = '1';
+              tag.style.opacity = '0';
+              modal.style.opacity = '0';
+              setTimeout(() => {
+                modal.style.zIndex = '-1';
+                removeOverlap();
+                isViewingFullScreen = false;
+              }, 450);
+            };
+          }, 500)
+        }else{
+          modal.onclick = null
+        }
+      }
     };
   };
 
+  const onImageContextMenu = (image: ImageInfo) => {
+    if(addTypeRef.current === actions.ADD_TAG){
+      addTagToImage(image.name, image.path, image.type, image.createdDate)
+    }else{
+      addImageToChapter(image.name, image.path)
+    }
+  }
+
+  const onImageMouseEnter = (e: React.MouseEvent, image: ImageInfo) => {
+    const infoIcon = (e.target as HTMLElement).parentElement?.childNodes[3] as HTMLElement;
+    if(!isQuickAdding){
+      if(infoIcon){
+        infoIcon.style.right = "5px"
+        infoIcon.style.rotate = "0deg"
+      }
+    }else{
+      if(addTypeRef.current === actions.ADD_TAG){
+        addTagToImage(image.name, image.path, image.type, image.createdDate)
+      }else{
+        addImageToChapter(image.name, image.path)
+      }
+    }
+  }
+
+  const onImageMouseLeave = (e: React.MouseEvent, image: ImageInfo) => {
+    const infoIcon = (e.target as HTMLElement).parentElement?.childNodes[3] as HTMLElement;
+    if(!isQuickAdding && infoIcon){
+      infoIcon.style.right = "-20px"
+      infoIcon.style.rotate = "75deg"
+    }
+    if(prevUpdatedImage === image.name){
+      prevUpdatedImage = ""
+    }
+  }
+
   const addTagToImage = (name: string, path: string, type: string | undefined, createdDate: number | undefined) => {
-    if(actionTypeRef.current !== "addTag" || prevUpdatedImage === name) return;
+    if(addTypeRef.current !== actions.ADD_TAG || prevUpdatedImage === name) return;
 
     if(tagsRef.current.length > 0){
       prevUpdatedImage = name;
-      const rawJSON = localStorage.getItem("imageInfos");
-      let infos: ImageInfo[] = [];
-      if(rawJSON){
-        infos = JSON.parse(rawJSON)
-      }
-      const index = infos.findIndex(i => i.path === path);
+      let newInfos = [...savedInfos]
+      const index = newInfos.findIndex(i => i.path === path);
       if(index !== -1){
-        infos[index] = {
+        newInfos[index] = {
           path: path,
           name: name,
           type: type,
-          tags: infos[index].tags?.filter(t => !tagsRef.current.find(t2 => t.name === t2.name && t.type === t2.type)).concat(tagsRef.current),
+          tags: newInfos[index].tags?.filter(t => !tagsRef.current.find(t2 => t.name === t2.name && t.type === t2.type)).concat(tagsRef.current),
           createdDate: createdDate,
           lastModifiedDate: Date.now()
         }
       }else{
-        infos.push({ name, path, type, tags: tagsRef.current, createdDate, lastModifiedDate: Date.now() })
+        newInfos.push({ name, path, type, tags: tagsRef.current, createdDate, lastModifiedDate: Date.now() })
       }
-      localStorage.setItem("imageInfos", JSON.stringify(infos))
+      saveImageInfos(newInfos)
       setUpdateHistory(updateHistoryRef.current.concat({ name, path, tags }))
     }else{
-      setMessageModal({ visible: true, message: "Oops! No tag to add..." })
+      setModal({ visible: true, message: "Oops! No tag to add..." })
     }
   }
 
@@ -450,11 +356,12 @@ function Hello() {
       setImages(data.images);
       loadImageFromDirectory(data.dirPath, data.images)
     }
+    toggleDropdown()
   }
 
   const toggleOrganizeView = () => {
     const view = document.querySelector(".organize_view") as HTMLElement;
-    const scrollView = document.querySelector(".scroll_view") as HTMLElement
+    const scrollView = document.querySelector(".image_scroll_view") as HTMLElement
     if(showOrganizePanel){
       if(!showInfoPanel){
         scrollView.style.transition = "margin-right 0.4s ease-out 0.3s"
@@ -464,7 +371,7 @@ function Hello() {
       view.style.top = "100%"
     }else{
       scrollView.style.transition = "margin-right 0.3s ease-out"
-      scrollView.style.marginRight = `${view.clientWidth}px`
+      scrollView.style.marginRight = `min(35%, 405px)`
       view.style.transition = "top 0.4s ease-out 0.3s"
       view.style.top = "0"
     }
@@ -473,13 +380,17 @@ function Hello() {
 
   const closeInfoPanel = () => {
     const infoPanel = document.querySelector(".info_panel") as HTMLElement;
-    const scrollView = document.querySelector(".scroll_view") as HTMLElement;
+    const scrollView = document.querySelector(".image_scroll_view") as HTMLElement;
     if(!showOrganizePanel){
       scrollView.style.transition = "margin-right 0.4s ease-out 0.3s"
       scrollView.style.marginRight = "0"
     }
     infoPanel.style.transition = "top 0.3s ease-out"
     infoPanel.style.top = "100%"
+    infoPanel.ontransitionend = () => {
+      setImageInfo(null)
+      infoPanel.ontransitionend = null
+    }
     showInfoPanel = false
   }
 
@@ -492,7 +403,7 @@ function Hello() {
       }
       const chapterName = (document.querySelector("#add_chapter_input") as HTMLInputElement).value;
       if(savedChapters.findIndex(c => c.name === chapterName) !== -1){
-        setMessageModal({ visible: true, message: "Chapter existed" })
+        setModal({ visible: true, message: "Chapter existed" })
         return;
       }
       if(chapterName.length >= 3 && chapterName.length <= 40){
@@ -500,12 +411,12 @@ function Hello() {
         setChapters(savedChapters);
         localStorage.setItem("chapters", JSON.stringify(savedChapters));
       }else{
-        setMessageModal({ visible: true, message: "Chapter name must be longer than 2 characters" })
+        setModal({ visible: true, message: "Chapter name must be longer than 2 characters" })
       }
     }
   }
 
-  const onChapterAction = (isAddingImage: boolean) => setActionType(isAddingImage ? "addChapterImage" : "addTag")
+  const onChapterAction = (isAddingImage: boolean) => setAddType(isAddingImage ? actions.ADD_CHAPTER_IMAGE : actions.ADD_TAG)
 
   const onChapterSelected = (c: Chapter) => setChapter(c)
 
@@ -525,15 +436,10 @@ function Hello() {
   }
 
   const onViewingChapter = async (chapter: Chapter) => {
-    const rawJSON = localStorage.getItem("imageInfos");
-    let infos: ImageInfo[] = [];
-    if(rawJSON){
-      infos = JSON.parse(rawJSON)
-    }
     let images = chapter.images || [];
     if(images.length > 0){
-      refreshScrollView(chapter.name)
-      images = images.map(i => ({ ...i, ...(infos.find(i2 => i.name === i2.name && i.path === i2.path) || {})}));
+      updateSourceText(chapter.name)
+      images = images.map(i => ({ ...i, ...(savedInfos.find(i2 => i.name === i2.name && i.path === i2.path) || {})}));
       let paths = new Set(images.map(i => i.path).map(path => path.substring(0, path.lastIndexOf("\\"))));
       let isAvailable = true;
       for(let path of paths){
@@ -549,10 +455,8 @@ function Hello() {
         isAvailable = await res.json()
       }
       if(isAvailable){
-        toColumn = 1
         setImages(images)
-        setPage(1)
-        appendImagesToUI(images)
+        // appendImagesToUI(images)
       }
     }else{
       setImages([])
@@ -563,9 +467,122 @@ function Hello() {
     let newChapter: Chapter = { ...chapter, images: chapter?.images?.slice(0, imageIndex).concat(chapter.images.slice(imageIndex+1)), modifiedDate: Date.now() }
     let newChapters = chapters.map(c => c.name === newChapter.name ? newChapter : c);
     localStorage.setItem("chapters", JSON.stringify(newChapters));
-    setChapter(newChapter)
     setChapters(newChapters)
     onViewingChapter(newChapter)
+  }
+
+  const onChangingImageIndex = (fromIndex: number, toIndex: number) => {
+    let newChapters = chapters.map((c: Chapter) => {
+      if(chapter.name === c.name && chapter.images){
+        let newImages = chapter.images.slice(0, fromIndex).concat(chapter.images.slice(fromIndex+1));
+        newImages.splice(toIndex, 0, chapter.images[fromIndex]);
+        return {
+          ...chapter,
+          images: newImages
+        }
+      }
+      return c
+    })
+    setChapters(newChapters)
+    onViewingChapter(newChapters[chapters.findIndex((c: Chapter) => c.name === chapter.name)])
+  }
+
+  const onDeletingChapter = (chapterName: string) => {
+    let newChapters = chapters.filter((c: Chapter) => c.name === chapterName);
+    setChapters(newChapters);
+    localStorage.setItem("chapters", JSON.stringify(newChapters))
+  }
+
+  const openFilterPanel = () => {
+    const panel = document.querySelector(".filter_panel") as HTMLElement;
+    // const lines = document.querySelectorAll(".anchor_background span");
+    panel.style.transition = "top 0.6s ease-out";
+    panel.style.top = "0";
+    // panel.ontransitionend = () => {
+    //   panel.style.transition = ""
+    //   for(let i = 1; i <= 4; i++){
+    //     (lines[i-1] as HTMLElement).style.animation = `collapse${i} 0.3s ease-out forwards`;
+    //   }
+    // }
+  }
+
+  const matchTagWithSDPrompt = async () => {
+    if(images.length === 0) return;
+
+    let stopProcess = false
+    setModal({ ...modal, visible: false })
+    const processView = document.querySelector(".processing") as HTMLElement;
+    const processText = processView.childNodes[1] as HTMLSpanElement;
+    processView.style.display = "flex"
+    processText.innerText = `Processing (${images.length})`
+    processView.onmouseenter = () => {
+      processText.innerText = processText.innerText.replace("Processing", "Stop")
+      processView.style.backgroundColor = "indigo"
+    }
+    processView.onmouseleave = () => {
+      processText.innerText = processText.innerText.replace("Stop", "Processing")
+      processView.style.backgroundColor = ""
+    }
+    processView.onclick = () => {
+      stopProcess = true
+    }
+    let newInfos = [...savedInfos]
+    let buffer: Buffer;
+    let matchTags: Tag[] = [];
+    for(let i = 0; i < images.length; i++){
+      if(stopProcess){
+        processText.innerText = `Processing (0)`
+        processView.style.backgroundColor = ""
+        processView.style.display = "none"
+        processView.onmouseenter = null
+        processView.onmouseleave = null
+        processView.onclick = null
+        return;
+      }
+      let image = images[i];
+      let res = await fetch(`http://localhost:4000/${image.path.substring(3).replace(/\\/g, "/").replace(/ /g, "_")}`);
+      buffer = Buffer.from(await res.arrayBuffer());
+      let chunks = extract(buffer);
+      const textChunks = chunks.filter((chunk: any) => chunk.name === "tEXt").map((chunk: any) => text.decode(chunk.data));
+      if(textChunks[0]?.text){
+        let promptSplit: string[] = textChunks[0].text.split("\n")[0].replace(/<lora:.{1,}>|\(|\)|\[|\]|\b:\d{1}.{0,1}\d{0,}|\B\s/g, "").split(",");
+        for(let tag of promptSplit){
+          let index = tags.findIndex((t: Tag) => tag === t.name);
+          if(index !== -1){
+            matchTags.push(tags[index])
+          }
+        }
+        if(matchTags.length > 0){
+          let imageIndex = newInfos.findIndex((i: ImageInfo) => i.name === image.name && i.path === image.path);
+          let newTags = newInfos[imageIndex]?.tags ? newInfos[imageIndex].tags?.filter((t) => !matchTags.some((t2) => t2.name === t.name && t2.type === t.type)).concat(matchTags) : matchTags;
+          if(imageIndex !== -1){
+            newInfos[imageIndex] = { ...newInfos[imageIndex], tags: newTags, lastModifiedDate: Date.now() }
+          }else{
+            newInfos.push({ ...image, tags: newTags, lastModifiedDate: Date.now() })
+          }
+          setUpdateHistory(updateHistoryRef.current.concat([{ name: image.name, path: image.path, tags: matchTags }]))
+          matchTags = []
+        }
+      }
+      processText.innerText = `Processing (${images.length - i})`
+    }
+    saveImageInfos(newInfos)
+    processView.style.display = "none"
+    processView.onmouseenter = null
+    processView.onmouseleave = null
+    processView.onclick = null
+  }
+
+  const onQuickMatch = () => {
+    setModal({ visible: true, message: `Do you want to quick match ${images.length} image(s)?`, onSubmit: matchTagWithSDPrompt })
+  }
+
+  const clearHistory = () => setUpdateHistory([])
+
+  const deleteSource = (index: number) => () => {
+    let newSources = paths.filter((p, i) => i !== index)
+    setPaths(newSources)
+    localStorage.setItem("savedPaths", JSON.stringify(newSources))
   }
 
   return (
@@ -573,13 +590,18 @@ function Hello() {
       <div className="status_bar">
         <span className="connection_status">Connected</span>
         <div className="divider" />
-        <div className="folder_source" onClick={toggleDropdown}>
-          <span>Choose a source...</span>
-          <BiSolidChevronDown className="dropdown_icon" />
+        <div className="folder_source">
+          <div onClick={toggleDropdown}>
+            <span>Choose a source...</span>
+            <BiSolidChevronDown className="dropdown_icon" />
+          </div>
           <div className="folder_source_dropdown">
             <ul>
-              {paths.map((path: string) => (
-                <li onClick={onDropdownItemClicked(path)}>{path}</li>
+              {paths.map((path: string, index) => (
+                <li>
+                  <span onClick={onDropdownItemClicked(path)}>{path}</span>
+                  <span className='remove_source' onClick={deleteSource(index)}>remove</span>
+                </li>
               ))}
             </ul>
           </div>
@@ -593,7 +615,7 @@ function Hello() {
           <div className="background" />
           Transfer
         </span>
-        <span className='filter'>
+        <span className='filter' onClick={openFilterPanel}>
           <div className="background"></div>
           Filter
         </span>
@@ -603,44 +625,55 @@ function Hello() {
         </span>
       </div>
       <div className="img_container" onClick={onBlur}>
-        <div className="scroll_view">
-          <div className="column" />
-          <div className="column" />
-          <div className="column" />
-          <div className="column" />
-          <div className="column" />
-        </div>
+        <ImageScrollView
+          selectedImage={imageInfo}
+          images={images}
+          onImageClicked={toFullScreen}
+          onImageContextMenu={onImageContextMenu}
+          onImageMouseEnter={onImageMouseEnter}
+          onImageMouseLeave={onImageMouseLeave}
+          onInfoIconClicked={showImageInfo}
+        />
         <OrganizePanel
           tags={tags}
           chapter={chapter}
           chapters={chapters}
-          actionType={actionType}
           updateHistory={updateHistory}
+          addType={addType}
           onTagListChanged={setTags}
           onChapterInput={createChapter}
           onChapterSelected={onChapterSelected}
           onChapterAction={onChapterAction}
           onViewingChapter={onViewingChapter}
           onDeletingChapterImage={onDeletingChapterImage}
+          onChangingImageIndex={onChangingImageIndex}
+          onDeletingChapter={onDeletingChapter}
+          onQuickMatch={onQuickMatch}
+          clearHistory={clearHistory}
         />
         <InfoPanel info={imageInfo} onPanelClosed={closeInfoPanel}/>
       </div>
       <ImageViewer/>
-      <MessageModal
-        visible={messageModal.visible}
-        message={messageModal.message}
-        onBackdropClicked={() => setMessageModal({...messageModal, visible: false })}
-      />
+      <MessageModal/>
+      <FilterPanel/>
     </div>
   );
 }
 
 export default function App() {
+  const [modal, setModal] = useState<ModalProps>({ visible: false, message: "" })
+  const [savedInfos, saveImageInfos] = useImageInfos()
+  const [imageFilter, setImageFilter] = useState(initFilter)
+
   return (
     <Router>
-      <Routes>
-        <Route path="/" element={<Hello />} />
-      </Routes>
+      <AppContext.Provider value={{ savedInfos, saveImageInfos, imageFilter, setImageFilter }}>
+        <ModalContext.Provider value={{ modal, setModal }}>
+          <Routes>
+            <Route path="/" element={<Hello />} />
+          </Routes>
+        </ModalContext.Provider>
+      </AppContext.Provider>
     </Router>
   );
 }

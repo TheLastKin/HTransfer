@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Chapter, ImageInfo } from 'renderer/constant/types';
+import React, { useContext, useState } from 'react';
+import { Chapter, ImageInfo, actions, activeColor } from 'renderer/constant/types';
 import { BsFillTriangleFill } from 'react-icons/bs';
 import '../componentCss/chapter_view.css';
 import ChapterContextMenu from './ChapterContextMenu';
@@ -7,27 +7,29 @@ import ChapterContextMenu from './ChapterContextMenu';
 type ChapterViewProps = {
   chapter: Chapter;
   chapters: Chapter[];
-  actionType: string;
+  addType: string,
   onChapterInput: (e: React.KeyboardEvent) => void;
   onChapterSelected: (chapter: Chapter) => void;
   onChapterAction: (isAddingImage: boolean) => void;
   onViewingChapter: (chapter: Chapter) => void;
   onDeletingChapterImage: (imageIndex: number) => void;
+  onChangingImageIndex: (fromIndex: number, toIndex: number) => void;
+  onDeletingChapter: (chapterName: string) => void;
 };
-
-const activeColor = 'rgb(122, 245, 122)';
 
 let editingChapter: Chapter = { name: "", images: [], createDate: 0, modifiedDate: 0 };
 
 function ChapterView({
   chapter,
   chapters,
-  actionType,
+  addType,
   onChapterInput,
   onChapterSelected,
   onChapterAction,
   onViewingChapter,
-  onDeletingChapterImage
+  onDeletingChapterImage,
+  onChangingImageIndex,
+  onDeletingChapter
 }: ChapterViewProps) {
   const [isSearching, setSearching] = useState<boolean>(false);
   const [searchText, setSearchText] = useState<string>("");
@@ -62,18 +64,16 @@ function ChapterView({
   };
 
   const onMouseEnter = (path: string) => (e: React.MouseEvent) => {
-    const imgCard = document.querySelector(`.img_card[data-path="${path.replace(/\\/g, "\\\\")}"]`) as HTMLElement;
+    const imgCard = document.querySelector(`.image_card[data-path="${path.replace(/\\/g, "\\\\")}"]`) as HTMLElement;
     if(imgCard){
-      imgCard.style.borderColor = "blue"
-      imgCard.style.boxShadow = "0 0 5px 1px rgba(0, 0, 255, 0.65)"
+      imgCard.className = "image_card image_card_highlight"
     }
   }
 
   const onMouseLeave = (path: string) => (e: React.MouseEvent) => {
-    const imgCard = document.querySelector(`.img_card[data-path="${path.replace(/\\/g, "\\\\")}"]`) as HTMLElement;
+    const imgCard = document.querySelector(`.image_card[data-path="${path.replace(/\\/g, "\\\\")}"]`) as HTMLElement;
     if(imgCard){
-      imgCard.style.borderColor = ""
-      imgCard.style.boxShadow = ""
+      imgCard.className = "image_card"
     }
   }
 
@@ -105,13 +105,18 @@ function ChapterView({
 
   const handleRenamingChapter = () => {}
 
-  const handleDeletingChapter = () => {}
+  const handleDeletingChapter = () => {
+    onDeletingChapter(editingChapter.name)
+  }
 
   const handleDeletingChapterImage = (imageIndex: number) => () => onDeletingChapterImage(imageIndex)
 
-  const onChangingImageIndex = (fromIndex: number) => (e: React.KeyboardEvent) => {
+  const handleChaningImageIndex = (fromIndex: number) => (e: React.KeyboardEvent) => {
     if(e.code === "Enter"){
-      const toIndex = Math.max(parseInt((e.target as HTMLElement).innerText), 1);
+      (e.target as HTMLElement).blur();
+      e.preventDefault();
+      const toIndex = Math.min(Math.max(parseInt((e.target as HTMLElement).innerText), 1), chapters.length);
+      onChangingImageIndex(fromIndex, toIndex)
     }
     if(!e.code.includes("Digit") && !e.code.includes("Backspace")){
       e.preventDefault()
@@ -135,7 +140,7 @@ function ChapterView({
         <BsFillTriangleFill className="go_back" onClick={goBack} />
         <span
           style={{
-            color: actionType === 'addChapterImage' ? activeColor : 'white',
+            color: addType === actions.ADD_CHAPTER_IMAGE ? activeColor : 'white',
           }}
         >
           Chapters
@@ -162,7 +167,7 @@ function ChapterView({
               (chapter.images!.length > 0 ? (
                 chapter.images!.map((image: ImageInfo, index) => (
                   <div className="chapter_image" onMouseEnter={onMouseEnter(image.path || "")} onMouseLeave={onMouseLeave(image.path || "")}>
-                    <div className="chapter_image_index" contentEditable onKeyDown={onChangingImageIndex(index)}>{index+1}</div>
+                    <div className="chapter_image_index" contentEditable onKeyDown={handleChaningImageIndex(index)}>{index+1}</div>
                     <div>.</div>
                     <div className='chapter_image_name'>{image.name}</div>
                     <div className="delete_chapter_image" onClick={handleDeletingChapterImage(index)}>x</div>
@@ -172,7 +177,7 @@ function ChapterView({
                 <div
                   style={{
                     color:
-                      actionType === 'addChapterImage' ? activeColor : 'white',
+                      addType === actions.ADD_CHAPTER_IMAGE ? activeColor : 'white',
                   }}
                   className="chapter_no_image"
                 >
