@@ -4,10 +4,10 @@
   width: 100%;
   height: 35px;
 }
-#add_chapter_input{
+#chapter_input{
   position: relative;
   flex: 1;
-  height: 100%;
+  height: 33px;
   background: none;
   outline: none;
   border-left: none;
@@ -17,23 +17,31 @@
   caret-color: white;
   font-size: 16px;
   color: rgb(255, 255, 255);
+  &::-webkit-inner-spin-button, &::-webkit-outer-spin-button{
+    appearance: none;
+    margin: 0;
+  }
   &::placeholder{
     color: white;
     font-size: 16px;
   }
 }
-.add_chapter_button{
+.chapter_button{
   position: relative;
   width: 60px;
-  height: 100%;
+  height: 35px;
   background-color: rgb(85, 118, 190);
-  border: 1px solid rgb(85, 118, 190);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 14px;
   color: white;
   cursor: pointer;
+  &>span{
+    width: 56px;
+    text-align: center;
+    user-select: none;
+  }
 }
 .chapter_view{
   position: relative;
@@ -151,21 +159,29 @@
     border: none;
   }
   &>.chapter_image_name{
-    flex: 1;
+    width: calc(100% - 50px);
     cursor: default;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  &>.change_chapter_image_index{
+    position: absolute;
+    display: none;
+    right: 28px;
+    color: rgb(223, 219, 15);
+    font-size: 22px;
+    cursor: pointer;
   }
   &>.delete_chapter_image{
     position: absolute;
     display: none;
     right: 5px;
-    padding: 3px 4px 4px 4px;
-    background-color: white;
     color: red;
-    font-size: 11px;
-    font-weight: bold;
+    font-size: 22px;
     cursor: pointer;
   }
-  &:hover>.delete_chapter_image{
+  &:hover>.delete_chapter_image, &:hover>.change_chapter_image_index{
     display: block;
   }
 }

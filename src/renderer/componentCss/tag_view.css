@@ -7,7 +7,7 @@
 #add_tag_input{
   position: relative;
   flex: 1;
-  height: 34px;
+  height: 32px;
   border-top: 1px solid rgba(255, 255, 255, 0);
   border-bottom: 1px solid white;
   outline: none;
@@ -30,10 +30,10 @@
   width: 50px;
   height: 100%;
   background-color: rgb(85, 118, 190);
-  border: 1px solid rgb(85, 118, 190);
   cursor: pointer;
   font-size: 12px;
   color: white;
+  user-select: none;
 }
 .tags{
   position: relative;

@@ -1,11 +1,10 @@
 import React, { useEffect, useState, useRef, useContext } from 'react';
-import { MemoryRouter as Router, Routes, Route } from 'react-router-dom';
 import './App.css';
 import { FcOpenedFolder } from 'react-icons/fc';
 import { BiSolidChevronDown } from 'react-icons/bi';
 import MessageModal from './components/MessageModal';
 import ImageViewer from './components/ImageViewer';
-import { Action, Chapter, ImageInfo, ModalProps, Tag, UpdateHistoryProps, actions, initFilter } from './constant/types';
+import { Chapter, ImageInfo, ModalProps, Tag, UpdateHistoryProps, actions, initFilter } from './constant/types';
 import InfoPanel from './components/InfoPanel';
 import OrganizePanel from './components/OrganizePanel';
 import FilterPanel from './components/FilterPanel';
@@ -13,6 +12,7 @@ import { AppContext, ModalContext } from './constant/context';
 import { Buffer } from 'buffer';
 import { useImageInfos } from './constant/hooks';
 import ImageScrollView from './components/ImageScrollView';
+import store from './constant/store';
 const extract = require('png-chunks-extract')
 const text = require('png-chunk-text')
 
@@ -24,12 +24,13 @@ let isViewingFullScreen = false;
 let viewIndex = 0;
 let showDropDown = false;
 let folderIndex = -1;
-let showOrganizePanel = false;
+let showOrganizePanel = true;
 let showInfoPanel = false;
 let isQuickAdding = false;
 let prevUpdatedImage = "";
 
 function Hello() {
+  const [fileLoaded, setFileLoaded] = useState(false)
   const [images, setImages] = useState<ImageInfo[]>([]);
   const [paths, setPaths] = useState([]);
   const { modal, setModal } = useContext(ModalContext)
@@ -39,7 +40,7 @@ function Hello() {
   const [chapter, setChapter] = useState<Chapter>({ name: "", images: [], createDate: 0, modifiedDate: 0 })
   const [chapters, setChapters] = useState<Chapter[]>([])
   const [addType, setAddType] = useState<string>(actions.ADD_TAG)
-  const { savedInfos, saveImageInfos } = useContext(AppContext)
+  const { savedInfos, saveImageInfos, setImageFilter } = useContext(AppContext)
   const imagesRef = useRef<any>();
   const pathsRef = useRef<any>([]);
   const imageInfoRef = useRef<ImageInfo | null>();
@@ -48,6 +49,7 @@ function Hello() {
   const addTypeRef = useRef<string>();
   const chapterRef = useRef<Chapter>();
   const chaptersRef = useRef<Chapter[]>([]);
+  const modalRef = useRef<ModalProps>();
 
   imagesRef.current = images;
   pathsRef.current = paths;
@@ -57,29 +59,71 @@ function Hello() {
   addTypeRef.current = addType;
   chapterRef.current = chapter;
   chaptersRef.current = chapters;
+  modalRef.current = modal;
 
-  useEffect(() => {
-    if(chapter.name){
-      setChapter(chapters[chapters.findIndex((c: Chapter) => c.name === chapter.name)])
-    }
-  }, [chapters])
-
-  const loadDirectoryPaths = () => {
-    const rawJSON = localStorage.getItem("savedPaths")
+  const loadDirectoryPaths = async () => {
+    const rawJSON = await store.get("savedPaths") as string
     if(rawJSON){
       setPaths(JSON.parse(rawJSON))
     }
   }
 
-  const loadChapters = () => {
-    const rawJSON = localStorage.getItem("chapters")
+  const loadChapters = async () => {
+    const rawJSON = await store.get("chapters") as string
     if(rawJSON){
       setChapters(JSON.parse(rawJSON))
     }
   }
 
+  const requestAssociatedFile = async () => {
+    const imagePath: string = await window.electron.requestAssociatedFile();
+    if(imagePath){
+      isViewingFullScreen = true;
+      const modal = document.querySelector('.image_viewer') as HTMLElement;
+      const imageView = document.querySelector('.viewer_image') as HTMLImageElement;
+      imageView.src = imagePath;
+      modal.style.zIndex = "5";
+      modal.style.opacity = "1";
+      imageView.style.opacity = '1';
+      imageView.onload = () => {
+        modal.ontransitionend = async () => {
+          const data = await window.electron.onDirectoryChosen(imagePath.substring(0, imagePath.lastIndexOf("\\")))
+          if(Array.isArray(data.images)){
+            setImages(data.images)
+            setFileLoaded(true)
+            viewIndex = data.images.findIndex((image: ImageInfo) => image.path === imagePath)
+          }
+          modal.ontransitionend = null
+        }
+        imageView.onload = null
+      }
+    }else{
+      setFileLoaded(true)
+    }
+  }
+
+  const onExternalFileOpen = (event: any, imagePath: string) => {
+    if(imagePath){
+      isViewingFullScreen = true;
+      const modal = document.querySelector('.image_viewer') as HTMLElement;
+      const imageView = document.querySelector('.viewer_image') as HTMLImageElement;
+      imageView.src = imagePath;
+      modal.style.zIndex = "5";
+      modal.style.opacity = "1";
+      imageView.style.opacity = '1';
+    }
+  }
+
   useEffect(() => {
+    requestAssociatedFile()
+    window.electron.onExternalFileOpen(onExternalFileOpen)
     document.onkeydown = async (e: KeyboardEvent) => {
+      if(e.code === "Escape" && modalRef.current?.visible){
+        setModal({ ...modalRef.current, visible: false })
+      }
+      if(e.code === "Tab"){
+        e.preventDefault()
+      }
       if(e.code.includes("Control")){
         isQuickAdding = true
       }
@@ -92,7 +136,7 @@ function Hello() {
         const data = await window.electron.onDirectoryChosen(pathsRef.current[folderIndex])
         if(data){
           setImages(data.images);
-          loadImageFromDirectory(data.dirPath, data.images)
+          loadImageFromDirectory(data.dirPath)
         }
       }
       if (isViewingFullScreen && (e.code === 'ArrowLeft' || e.code === 'ArrowRight')){
@@ -105,7 +149,7 @@ function Hello() {
             viewIndex === imagesRef.current.length - 1 ? 1 : viewIndex + 1;
         }
         const image = document.querySelector(`.viewer_image`) as HTMLImageElement;
-        image.src = `http://localhost:4000/${imagesRef.current[viewIndex].path.substring(3).replace(/\\/g, "/").replace(/ /g, "_")}`;
+        image.src = imagesRef.current[viewIndex].path
         removeOverlap();
       }
     };
@@ -117,6 +161,24 @@ function Hello() {
     loadDirectoryPaths()
     loadChapters()
   }, []);
+
+  useEffect(() => {
+    if(chapter.name){
+      setChapter(chapters[chapters.findIndex((c: Chapter) => c.name === chapter.name)])
+    }
+  }, [chapters])
+
+  const onBackropClicked = (e: React.MouseEvent) => {
+    const modal = e.target as HTMLElement;
+    const imageOverlap = document.querySelector(".image_overlap") as HTMLElement;
+    modal.style.opacity = '0';
+    if(imageOverlap) imageOverlap.style.opacity = "0"
+    setTimeout(() => {
+      modal.style.zIndex = '-1';
+      if(imageOverlap) imageOverlap.remove()
+      isViewingFullScreen = false;
+    }, 450);
+  }
 
   const removeOverlap = () => {
     const overlap = document.querySelector('.image_overlap') as HTMLElement;
@@ -133,27 +195,20 @@ function Hello() {
     (document.querySelector('.folder_source>div>span') as HTMLSpanElement).innerText = dirPath
   }
 
-  const loadImageFromDirectory = async (dirPath: string, images: ImageInfo[]) => {
+  const loadImageFromDirectory = (dirPath: string) => {
     if (dirPath) {
+      refreshScrollView()
       saveDirPath(dirPath);
       updateSourceText(dirPath);
-      const res = await fetch('http://localhost:4000/streamImage', {
-        method: 'POST',
-        mode: 'cors',
-        headers: {
-          'Content-Type': 'application/json',
-          'Allow-Control-Access-Origin': '*',
-        },
-        body: JSON.stringify({ dirURL: dirPath }),
-      });
     }
   };
 
   const openDirectory = async () => {
     const data = await window.electron.chooseDirectory(maxImageLoad);
     if(data){
+      refreshScrollView()
       setImages(data.images);
-      loadImageFromDirectory(data.dirPath, data.images)
+      loadImageFromDirectory(data.dirPath)
     }
   }
 
@@ -161,18 +216,18 @@ function Hello() {
     if(info.name === imageInfo?.name && info.path === imageInfo?.path && showInfoPanel){
       return;
     }
+    const savedInfo = savedInfos.find(i => i.path === info.path);
     setImageInfo({
       ...info,
+      ...savedInfo,
       chapters: chaptersRef.current
       .filter((c: Chapter) => c.images?.findIndex(i => i.name === info.name && i.path === info.path) !== -1)
       .map((c: Chapter) => c.name) });
     const infoPanel = document.querySelector(".info_panel") as HTMLElement;
     const scrollView = document.querySelector(".image_scroll_view") as HTMLElement;
     if(!showInfoPanel){
-      scrollView.style.transition = "margin-right 0.3s ease-out"
-      scrollView.style.marginRight = `min(35%, 405px)`
-      infoPanel.style.transition = "top 0.4s ease-out 0.3s"
-      infoPanel.style.top = "0"
+      scrollView.style.marginRight = "375px"
+      infoPanel.style.right = "0"
     }
     showInfoPanel = true
   }
@@ -189,57 +244,29 @@ function Hello() {
     const naturalHeight = image.naturalHeight;
     const container = document.querySelector('.content') as HTMLElement;
     const bounds = image.getBoundingClientRect();
-    const tag = document.createElement('img');
-    tag.className = 'image_overlap';
-    tag.style.width = `${image.clientWidth}px`;
-    tag.style.left = '0';
-    tag.style.top = '0';
-    tag.style.transform = `translate(${bounds.x}px, ${bounds.y}px)`;
-    tag.src = image.src;
+    const imageOverlap = document.createElement('img');
+    imageOverlap.className = 'image_overlap';
+    imageOverlap.style.width = `${image.clientWidth}px`;
+    imageOverlap.style.left = '0';
+    imageOverlap.style.top = '0';
+    imageOverlap.style.transform = `translate(${bounds.x}px, ${bounds.y}px)`;
+    imageOverlap.src = image.src;
+    imageOverlap.draggable = false;
     const scaleFactor = Math.min(
       (window.innerHeight * 0.95) / image.clientHeight,
       naturalHeight / image.clientHeight
     );
-    tag.onload = () => {
-      container.appendChild(tag);
-      image.style.opacity = '0';
-      tag.style.transform = `scale(${scaleFactor})  translate(calc((50vw - ${
+    imageOverlap.onload = () => {
+      container.appendChild(imageOverlap);
+      imageOverlap.style.transform = `scale(${scaleFactor})  translate(calc((50vw - ${
         image.clientWidth / 2
       }px)/${scaleFactor}), calc((50vh - ${
         image.clientHeight / 2
       }px)/${scaleFactor}))`;
-      tag.style.zIndex = '10';
+      imageOverlap.style.zIndex = '10';
       const modal = document.querySelector('.image_viewer') as HTMLElement;
       modal.style.zIndex = '5';
       modal.style.opacity = '1';
-      modal.onclick = () => {
-        image.style.opacity = '1';
-        tag.style.opacity = '0';
-        modal.style.opacity = '0';
-        setTimeout(() => {
-          modal.style.zIndex = '-1';
-          removeOverlap();
-          isViewingFullScreen = false;
-        }, 450);
-      };
-      document.onvisibilitychange = () => {
-        if(document.visibilityState === "visible"){
-          setTimeout(() => {
-            modal.onclick = () => {
-              image.style.opacity = '1';
-              tag.style.opacity = '0';
-              modal.style.opacity = '0';
-              setTimeout(() => {
-                modal.style.zIndex = '-1';
-                removeOverlap();
-                isViewingFullScreen = false;
-              }, 450);
-            };
-          }, 500)
-        }else{
-          modal.onclick = null
-        }
-      }
     };
   };
 
@@ -252,7 +279,7 @@ function Hello() {
   }
 
   const onImageMouseEnter = (e: React.MouseEvent, image: ImageInfo) => {
-    const infoIcon = (e.target as HTMLElement).parentElement?.childNodes[3] as HTMLElement;
+    const infoIcon = (e.target as HTMLElement).parentElement?.querySelector(".info_icon") as HTMLElement;
     if(!isQuickAdding){
       if(infoIcon){
         infoIcon.style.right = "5px"
@@ -268,7 +295,7 @@ function Hello() {
   }
 
   const onImageMouseLeave = (e: React.MouseEvent, image: ImageInfo) => {
-    const infoIcon = (e.target as HTMLElement).parentElement?.childNodes[3] as HTMLElement;
+    const infoIcon = (e.target as HTMLElement).parentElement?.querySelector(".info_icon") as HTMLElement;
     if(!isQuickAdding && infoIcon){
       infoIcon.style.right = "-20px"
       infoIcon.style.rotate = "75deg"
@@ -304,18 +331,18 @@ function Hello() {
     }
   }
 
-  const saveDirPath = (path: string) => {
-    const rawJSON = localStorage.getItem('savedPaths');
+  const saveDirPath = async (path: string) => {
+    const rawJSON = await store.get('savedPaths') as string;
     let savedPaths: string[] | any = [];
     if (rawJSON) {
       savedPaths = JSON.parse(rawJSON);
       if (!savedPaths.includes(path)) {
         savedPaths = [path].concat(savedPaths);
-        localStorage.setItem('savedPaths', JSON.stringify(savedPaths));
+        store.set('savedPaths', JSON.stringify(savedPaths));
       }
     } else {
       savedPaths = [path];
-      localStorage.setItem('savedPaths', JSON.stringify(savedPaths));
+      store.set('savedPaths', JSON.stringify(savedPaths));
     }
     setPaths(savedPaths);
   };
@@ -353,27 +380,24 @@ function Hello() {
   const onDropdownItemClicked = (path: string) => async (e: React.MouseEvent) => {
     const data = await window.electron.onDirectoryChosen(path)
     if(data){
+      refreshScrollView()
       setImages(data.images);
-      loadImageFromDirectory(data.dirPath, data.images)
+      loadImageFromDirectory(data.dirPath)
     }
     toggleDropdown()
   }
 
   const toggleOrganizeView = () => {
-    const view = document.querySelector(".organize_view") as HTMLElement;
-    const scrollView = document.querySelector(".image_scroll_view") as HTMLElement
+    const view = document.querySelector(".organize_panel") as HTMLElement;
+    const scrollView = document.querySelector(".image_scroll_view") as HTMLElement;
     if(showOrganizePanel){
       if(!showInfoPanel){
-        scrollView.style.transition = "margin-right 0.4s ease-out 0.3s"
         scrollView.style.marginRight = "0"
       }
-      view.style.transition = "top 0.3s ease-out"
-      view.style.top = "100%"
+      view.style.right = "-376px"
     }else{
-      scrollView.style.transition = "margin-right 0.3s ease-out"
-      scrollView.style.marginRight = `min(35%, 405px)`
-      view.style.transition = "top 0.4s ease-out 0.3s"
-      view.style.top = "0"
+      scrollView.style.marginRight = "375px"
+      view.style.right = "0"
     }
     showOrganizePanel = !showOrganizePanel
   }
@@ -382,11 +406,9 @@ function Hello() {
     const infoPanel = document.querySelector(".info_panel") as HTMLElement;
     const scrollView = document.querySelector(".image_scroll_view") as HTMLElement;
     if(!showOrganizePanel){
-      scrollView.style.transition = "margin-right 0.4s ease-out 0.3s"
       scrollView.style.marginRight = "0"
     }
-    infoPanel.style.transition = "top 0.3s ease-out"
-    infoPanel.style.top = "100%"
+    infoPanel.style.right = "-375px"
     infoPanel.ontransitionend = () => {
       setImageInfo(null)
       infoPanel.ontransitionend = null
@@ -394,25 +416,23 @@ function Hello() {
     showInfoPanel = false
   }
 
-  const createChapter = (e: KeyboardEvent) => {
+  const createChapter = (e: React.KeyboardEvent) => {
     if(e.code === "Enter"){
-      const rawJSON = localStorage.getItem("chapters");
-      let savedChapters: Chapter[] = [];
-      if(rawJSON){
-        savedChapters = JSON.parse(rawJSON)
-      }
-      const chapterName = (document.querySelector("#add_chapter_input") as HTMLInputElement).value;
-      if(savedChapters.findIndex(c => c.name === chapterName) !== -1){
+      let newChapters: Chapter[] = [...chaptersRef.current];
+      const input = (document.querySelector("#add_chapter_input") as HTMLInputElement);
+      const chapterName = input.value;
+      if(newChapters.findIndex(c => c.name === chapterName) !== -1){
         setModal({ visible: true, message: "Chapter existed" })
         return;
       }
       if(chapterName.length >= 3 && chapterName.length <= 40){
-        savedChapters.push({ name: chapterName, images: [], createDate: Date.now(), modifiedDate: Date.now() });
-        setChapters(savedChapters);
-        localStorage.setItem("chapters", JSON.stringify(savedChapters));
+        newChapters.push({ name: chapterName, images: [], createDate: Date.now(), modifiedDate: Date.now() });
+        setChapters(newChapters);
+        store.set("chapters", JSON.stringify(newChapters));
       }else{
-        setModal({ visible: true, message: "Chapter name must be longer than 2 characters" })
+        setModal({ visible: true, message: "Chapter name must be longer than 2 and lower than 40 characters" })
       }
+      input.value = ""
     }
   }
 
@@ -432,50 +452,28 @@ function Hello() {
       return c
     })
     setChapters(newChapters);
-    localStorage.setItem("chapters", JSON.stringify(newChapters))
+    store.set("chapters", JSON.stringify(newChapters))
   }
 
-  const onViewingChapter = async (chapter: Chapter) => {
-    let images = chapter.images || [];
-    if(images.length > 0){
-      updateSourceText(chapter.name)
-      images = images.map(i => ({ ...i, ...(savedInfos.find(i2 => i.name === i2.name && i.path === i2.path) || {})}));
-      let paths = new Set(images.map(i => i.path).map(path => path.substring(0, path.lastIndexOf("\\"))));
-      let isAvailable = true;
-      for(let path of paths){
-        const res = await fetch('http://localhost:4000/streamImage', {
-          method: 'POST',
-          mode: 'cors',
-          headers: {
-            'Content-Type': 'application/json',
-            'Allow-Control-Access-Origin': '*',
-          },
-          body: JSON.stringify({ dirURL: path }),
-        });
-        isAvailable = await res.json()
-      }
-      if(isAvailable){
-        setImages(images)
-        // appendImagesToUI(images)
-      }
-    }else{
-      setImages([])
-    }
+  const onViewingChapter = (chapter: Chapter) => {
+    updateSourceText(chapter.name)
+    setImageFilter({ ...initFilter, sortBy: { type: "", asc: true }})
+    setImages(chapter.images || [])
   }
 
   const onDeletingChapterImage = (imageIndex: number) => {
     let newChapter: Chapter = { ...chapter, images: chapter?.images?.slice(0, imageIndex).concat(chapter.images.slice(imageIndex+1)), modifiedDate: Date.now() }
     let newChapters = chapters.map(c => c.name === newChapter.name ? newChapter : c);
-    localStorage.setItem("chapters", JSON.stringify(newChapters));
+    store.set("chapters", JSON.stringify(newChapters));
     setChapters(newChapters)
     onViewingChapter(newChapter)
   }
 
   const onChangingImageIndex = (fromIndex: number, toIndex: number) => {
-    let newChapters = chapters.map((c: Chapter) => {
+    let newChapters: Chapter[] = chapters.map((c: Chapter) => {
       if(chapter.name === c.name && chapter.images){
         let newImages = chapter.images.slice(0, fromIndex).concat(chapter.images.slice(fromIndex+1));
-        newImages.splice(toIndex, 0, chapter.images[fromIndex]);
+        newImages.splice(Math.max(toIndex-1, 0), 0, chapter.images[fromIndex]);
         return {
           ...chapter,
           images: newImages
@@ -483,14 +481,17 @@ function Hello() {
       }
       return c
     })
+    let newChapter: Chapter | undefined = newChapters.find(c => c.name === chapter.name);
     setChapters(newChapters)
-    onViewingChapter(newChapters[chapters.findIndex((c: Chapter) => c.name === chapter.name)])
+    if(newChapter){
+      setChapter(newChapter)
+    }
   }
 
   const onDeletingChapter = (chapterName: string) => {
     let newChapters = chapters.filter((c: Chapter) => c.name === chapterName);
     setChapters(newChapters);
-    localStorage.setItem("chapters", JSON.stringify(newChapters))
+    store.set("chapters", JSON.stringify(newChapters))
   }
 
   const openFilterPanel = () => {
@@ -498,12 +499,12 @@ function Hello() {
     // const lines = document.querySelectorAll(".anchor_background span");
     panel.style.transition = "top 0.6s ease-out";
     panel.style.top = "0";
-    // panel.ontransitionend = () => {
-    //   panel.style.transition = ""
-    //   for(let i = 1; i <= 4; i++){
-    //     (lines[i-1] as HTMLElement).style.animation = `collapse${i} 0.3s ease-out forwards`;
-    //   }
-    // }
+    panel.ontransitionend = () => {
+      panel.style.transition = ""
+      // for(let i = 1; i <= 4; i++){
+      //   (lines[i-1] as HTMLElement).style.animation = `collapse${i} 0.3s ease-out forwards`;
+      // }
+    }
   }
 
   const matchTagWithSDPrompt = async () => {
@@ -540,7 +541,7 @@ function Hello() {
         return;
       }
       let image = images[i];
-      let res = await fetch(`http://localhost:4000/${image.path.substring(3).replace(/\\/g, "/").replace(/ /g, "_")}`);
+      let res = await fetch(image.path);
       buffer = Buffer.from(await res.arrayBuffer());
       let chunks = extract(buffer);
       const textChunks = chunks.filter((chunk: any) => chunk.name === "tEXt").map((chunk: any) => text.decode(chunk.data));
@@ -582,80 +583,90 @@ function Hello() {
   const deleteSource = (index: number) => () => {
     let newSources = paths.filter((p, i) => i !== index)
     setPaths(newSources)
-    localStorage.setItem("savedPaths", JSON.stringify(newSources))
+    store.set("savedPaths", JSON.stringify(newSources))
+  }
+
+  const refreshScrollView = () => {
+    const scrollView = document.querySelector(".image_scroll_view") as HTMLElement;
+    scrollView.scrollTop = 0
   }
 
   return (
     <div className="content">
-      <div className="status_bar">
-        <span className="connection_status">Connected</span>
-        <div className="divider" />
-        <div className="folder_source">
-          <div onClick={toggleDropdown}>
-            <span>Choose a source...</span>
-            <BiSolidChevronDown className="dropdown_icon" />
+      <ImageViewer onBackropClicked={onBackropClicked}/>
+      {
+        fileLoaded &&
+        <>
+          <div className="status_bar">
+            <span className="connection_status">Connected</span>
+            <div className="divider" />
+            <div className="folder_source">
+              <div onClick={toggleDropdown}>
+                <span>Choose a source...</span>
+                <BiSolidChevronDown className="dropdown_icon" />
+              </div>
+              <div className="folder_source_dropdown">
+                <ul>
+                  {paths.map((path: string, index) => (
+                    <li>
+                      <span onClick={onDropdownItemClicked(path)}>{path}</span>
+                      <span className='remove_source' onClick={deleteSource(index)}>remove</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+            <div className="choose_folder_source">
+              <div className="background" onClick={openDirectory} />
+              <FcOpenedFolder className="folder_icon" />
+            </div>
+            <div className="divider" />
+            <span className="transfer">
+              <div className="background" />
+              Transfer
+            </span>
+            <span className='filter' onClick={openFilterPanel}>
+              <div className="background"></div>
+              Filter
+            </span>
+            <span className="organize" onClick={toggleOrganizeView}>
+              <div className="background" />
+              Organize
+            </span>
           </div>
-          <div className="folder_source_dropdown">
-            <ul>
-              {paths.map((path: string, index) => (
-                <li>
-                  <span onClick={onDropdownItemClicked(path)}>{path}</span>
-                  <span className='remove_source' onClick={deleteSource(index)}>remove</span>
-                </li>
-              ))}
-            </ul>
+          <div className="img_container" onClick={onBlur}>
+            <ImageScrollView
+              selectedImage={imageInfo}
+              images={images}
+              onImageClicked={toFullScreen}
+              onImageContextMenu={onImageContextMenu}
+              onImageMouseEnter={onImageMouseEnter}
+              onImageMouseLeave={onImageMouseLeave}
+              onInfoIconClicked={showImageInfo}
+            />
+            <OrganizePanel
+              tags={tags}
+              chapter={chapter}
+              chapters={chapters}
+              updateHistory={updateHistory}
+              addType={addType}
+              onTagListChanged={setTags}
+              onChapterInput={createChapter}
+              onChapterSelected={onChapterSelected}
+              onChapterAction={onChapterAction}
+              onViewingChapter={onViewingChapter}
+              onDeletingChapterImage={onDeletingChapterImage}
+              onChangingImageIndex={onChangingImageIndex}
+              onDeletingChapter={onDeletingChapter}
+              onQuickMatch={onQuickMatch}
+              clearHistory={clearHistory}
+            />
+            <InfoPanel info={imageInfo} onPanelClosed={closeInfoPanel} onImageChanged={setImageInfo}/>
           </div>
-        </div>
-        <div className="choose_folder_source">
-          <div className="background" onClick={openDirectory} />
-          <FcOpenedFolder className="folder_icon" />
-        </div>
-        <div className="divider" />
-        <span className="transfer">
-          <div className="background" />
-          Transfer
-        </span>
-        <span className='filter' onClick={openFilterPanel}>
-          <div className="background"></div>
-          Filter
-        </span>
-        <span className="organize" onClick={toggleOrganizeView}>
-          <div className="background" />
-          Organize
-        </span>
-      </div>
-      <div className="img_container" onClick={onBlur}>
-        <ImageScrollView
-          selectedImage={imageInfo}
-          images={images}
-          onImageClicked={toFullScreen}
-          onImageContextMenu={onImageContextMenu}
-          onImageMouseEnter={onImageMouseEnter}
-          onImageMouseLeave={onImageMouseLeave}
-          onInfoIconClicked={showImageInfo}
-        />
-        <OrganizePanel
-          tags={tags}
-          chapter={chapter}
-          chapters={chapters}
-          updateHistory={updateHistory}
-          addType={addType}
-          onTagListChanged={setTags}
-          onChapterInput={createChapter}
-          onChapterSelected={onChapterSelected}
-          onChapterAction={onChapterAction}
-          onViewingChapter={onViewingChapter}
-          onDeletingChapterImage={onDeletingChapterImage}
-          onChangingImageIndex={onChangingImageIndex}
-          onDeletingChapter={onDeletingChapter}
-          onQuickMatch={onQuickMatch}
-          clearHistory={clearHistory}
-        />
-        <InfoPanel info={imageInfo} onPanelClosed={closeInfoPanel}/>
-      </div>
-      <ImageViewer/>
-      <MessageModal/>
-      <FilterPanel/>
+          <MessageModal/>
+          <FilterPanel/>
+        </>
+      }
     </div>
   );
 }
@@ -666,14 +677,10 @@ export default function App() {
   const [imageFilter, setImageFilter] = useState(initFilter)
 
   return (
-    <Router>
-      <AppContext.Provider value={{ savedInfos, saveImageInfos, imageFilter, setImageFilter }}>
-        <ModalContext.Provider value={{ modal, setModal }}>
-          <Routes>
-            <Route path="/" element={<Hello />} />
-          </Routes>
-        </ModalContext.Provider>
-      </AppContext.Provider>
-    </Router>
+    <AppContext.Provider value={{ savedInfos, saveImageInfos, imageFilter, setImageFilter }}>
+      <ModalContext.Provider value={{ modal, setModal }}>
+        <Hello />
+      </ModalContext.Provider>
+    </AppContext.Provider>
   );
 }

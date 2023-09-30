@@ -38,8 +38,6 @@
   border-bottom-left-radius: 10px;
   border-bottom-right-radius: 10px;
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(2.9px);
-  -webkit-backdrop-filter: blur(2.9px);
   &::before{
     content: "";
     position: absolute;
@@ -68,11 +66,13 @@
     align-items: center;
     justify-content: center;
     bottom: 0;
-    width: 64px;
+    width: 63px;
     height: 20px;
     background: rgba(255, 255, 255, 0.25);
     border-bottom-left-radius: 10px;
     border-bottom-right-radius: 10px;
+    backdrop-filter: blur(3px);
+    z-index: -1;
     cursor: grab;
   }
 }

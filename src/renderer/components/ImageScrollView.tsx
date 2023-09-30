@@ -111,11 +111,14 @@ const ImageScrollView = ({ selectedImage, images, onImageClicked, onImageContext
     if(imageFilter.sortBy.type === "Date created"){
       newImages.sort((i1, i2) => imageFilter.sortBy.asc ? (i1.createdDate || 0) - (i2.createdDate || 0) : (i2.createdDate || 0) - (i1.createdDate || 0))
       setFilteredImages(newImages)
+      return;
     }
     if(imageFilter.sortBy.type === "Date modified"){
       newImages.sort((i1, i2) => imageFilter.sortBy.asc ? (i1.lastModifiedDate || 0) - (i2.lastModifiedDate || 0) : (i2.lastModifiedDate || 0) - (i1.lastModifiedDate || 0))
       setFilteredImages(newImages)
+      return;
     }
+    setFilteredImages(newImages)
   }
 
   const onScroll = (e: React.UIEvent) => {

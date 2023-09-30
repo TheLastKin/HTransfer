@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState, useRef } from 'react';
 import '../componentCss/image_card.css'
 import { ImageInfo } from 'renderer/constant/types';
 import { AppContext } from 'renderer/constant/context';
@@ -63,6 +63,21 @@ type ImageCardProps = {
 const ImageCard = ({ image, index, selected, onImageClicked, onImageContextMenu, onImageMouseEnter, onImageMouseLeave, onInfoIconClicked }: ImageCardProps) => {
   const [isSDImage, setSDImage] = useState(false)
   const { imageFilter } = useContext(AppContext)
+  const viewRef = useRef(null)
+  const imageRef = useRef<ImageInfo>()
+
+  imageRef.current = image
+
+  useEffect(() => {
+    const scrollView = document.querySelector(".image_scroll_view") as HTMLElement;
+    const intersect = new IntersectionObserver(entries => entries.forEach(intersectHandler), { root: scrollView, rootMargin: "800px" })
+    if(viewRef.current){
+      intersect.observe(viewRef.current)
+    }
+    return () => {
+      intersect.disconnect()
+    }
+  }, [])
 
   useEffect(() => {
     loadImage()
@@ -70,29 +85,58 @@ const ImageCard = ({ image, index, selected, onImageClicked, onImageContextMenu,
 
   const loadImage = async () => {
     const container = document.querySelector(`.image_card[data-path="${image.path.replace(/\\/g, "\\\\")}"]`) as HTMLElement
-    const imageView = container.querySelector(".image") as HTMLImageElement;
-    let res = await fetch(`http://localhost:4000/${image.path.substring(3).replace(/\\/g, "/").replace(/ /g, "_")}`)
+    let res = await fetch(image.path)
     if(res.status === 200){
       let buffer = Buffer.from(await res.arrayBuffer());
-      let chunks = extract(buffer);
-      const textChunks = chunks.filter((chunk: any) => chunk.name === "tEXt").map((chunk: any) => text.decode(chunk.data));
-      if(imageView){
-        if(textChunks[0]?.text){
+      try {
+        let chunks = extract(buffer);
+        const textChunks = chunks.filter((chunk: any) => chunk.name === "tEXt").map((chunk: any) => text.decode(chunk.data));
+        if(textChunks[0]?.text?.includes("Sampler")){
           container.dataset.SDdata = textChunks[0].text
           setSDImage(true)
+        }else{
+          container.dataset.SDdata = ""
+          setSDImage(false)
         }
+      } catch (error) {
+        container.dataset.SDdata = ""
+        setSDImage(false)
       }
+    }else{
+      container.dataset.SDdata = ""
+      setSDImage(false)
     }
   }
 
   const onImageLoaded = (e: React.SyntheticEvent) => {
     const img = (e.target as HTMLImageElement);
-    const imgAvgColor = img.parentElement?.childNodes[1] as HTMLElement;
-    const imgPreload = img.parentElement?.childNodes[2] as HTMLElement;
-    const rgb = getAverageRGB(img)
+    const imgPreload = img.parentElement?.querySelector(".image_preload") as HTMLElement;
     img.style.display = "block"
-    imgAvgColor.style.backgroundColor = `rgb(${rgb.r}, ${rgb.b}, ${rgb.g})`
-    imgPreload.style.display = "none"
+    if(imgPreload){
+      imgPreload.remove()
+    }
+    const card = img.parentElement?.parentElement as HTMLElement;
+    card.style.aspectRatio = `${img.naturalWidth/img.naturalHeight}`
+  }
+
+  const intersectHandler = (entry: IntersectionObserverEntry) => {
+    if(entry.isIntersecting){
+      mountImage(entry.target.querySelector(".image") as HTMLImageElement)
+    }else if(!entry.isIntersecting && entry.intersectionRatio === 0){
+      unmountImage(entry.target.querySelector(".image") as HTMLImageElement)
+    }
+  }
+
+  const unmountImage = (view: HTMLImageElement) => {
+    if(view.src.length > 0){
+      view.src = ""
+    }
+  }
+
+  const mountImage = (view: HTMLImageElement) => {
+    if(imageRef.current && !view.src.includes(imageRef.current.path)){
+      view.src = imageRef.current.path
+    }
   }
 
   const handleImageClick = (e: React.MouseEvent) => onImageClicked(e, index)
@@ -109,10 +153,10 @@ const ImageCard = ({ image, index, selected, onImageClicked, onImageContextMenu,
   }
 
   return (
-    <div className={`image_card ${selected ? "image_card_highlight" : ""}`} data-path={image.path}>
+    <div ref={viewRef} className={`image_card ${selected ? "image_card_highlight" : ""}`} data-path={image.path}>
       <div className="image_card_content" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
         <img
-          src={`http://localhost:4000/${image.path.substring(3).replace(/\\/g, "/").replace(/ /g, "_")}`}
+          src={image.path}
           className="image"
           crossOrigin='anonymous'
           draggable={false}
@@ -120,7 +164,6 @@ const ImageCard = ({ image, index, selected, onImageClicked, onImageContextMenu,
           onClick={handleImageClick}
           onContextMenu={handleContextMenu}
         />
-        <div className="image_average_color"></div>
         <div className="image_preload"></div>
         <div className="info_icon" onClick={handleInfoIconClicked}>i</div>
         <div style={{ display: imageFilter.extraInfo.showIndex ? "flex" : "none" }} className="image_index">{index+1}</div>

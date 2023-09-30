@@ -1,21 +1,24 @@
 .image_scroll_view{
   position: relative;
-  width: calc(100% - 20px);
+  flex: 1;
   height: auto;
-  max-height: 100%;
   display: flex;
-  align-items: flex-start;
   padding: 0 10px;
   overflow-y: auto;
   overflow-x: hidden;
-  justify-content: center;
+  z-index: 4;
+  margin-right: 375px;
+  transition: margin-right 0.4s ease-out;
+  transform: translate3d(0,0,0);
 }
 .column{
   position: relative;
   width: calc(20% - 10px);
-  height: auto;
+  height: fit-content;
   margin-left: 5px;
   margin-right: 5px;
+  padding-top: 10px;
+  padding-bottom: 10px;
 }
 .column>div:nth-child(n+2){
   margin-top: 10px;

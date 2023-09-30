@@ -3,6 +3,8 @@ import { Chapter, ImageInfo, actions, activeColor } from 'renderer/constant/type
 import { BsFillTriangleFill } from 'react-icons/bs';
 import '../componentCss/chapter_view.css';
 import ChapterContextMenu from './ChapterContextMenu';
+import { IoMdRemoveCircleOutline } from 'react-icons/io'
+import { MdOutlineSwapVerticalCircle } from 'react-icons/md'
 
 type ChapterViewProps = {
   chapter: Chapter;
@@ -18,6 +20,7 @@ type ChapterViewProps = {
 };
 
 let editingChapter: Chapter = { name: "", images: [], createDate: 0, modifiedDate: 0 };
+let fromIndex = -1;
 
 function ChapterView({
   chapter,
@@ -31,8 +34,8 @@ function ChapterView({
   onChangingImageIndex,
   onDeletingChapter
 }: ChapterViewProps) {
-  const [isSearching, setSearching] = useState<boolean>(false);
-  const [searchText, setSearchText] = useState<string>("");
+  const [inputType, setInputType] = useState("Create");
+  const [searchText, setSearchText] = useState("");
 
   const selectChapter = (item: Chapter) => () => {
     onChapterSelected(item);
@@ -78,18 +81,37 @@ function ChapterView({
   }
 
   const toggleInputType = () => {
-    (document.querySelector("#add_chapter_input") as HTMLInputElement).value = "";
-    if(isSearching){
+    const input = document.querySelector("#chapter_input") as HTMLInputElement;
+    input.value = ""
+    if(inputType === "Create"){
       setSearchText("")
+      input.placeholder = "Type here to search chapter!"
+    }else{
+      input.placeholder = "Type here to create a chapter!"
     }
-    setSearching(!isSearching)
+    setInputType(inputType === "Create" ? "Search" : "Create")
   }
 
   const handleInput = (e: React.KeyboardEvent) => {
-    if(isSearching){
-      setSearchText((e.target as HTMLInputElement).value)
+    const value = (e.target as HTMLInputElement).value;
+    if(inputType === "Change index"){
+      if(e.code === "Enter"){
+        if(fromIndex !== -1 && typeof(parseInt(value)) === "number"){
+          onChangingImageIndex(fromIndex, parseInt(value));
+          fromIndex = -1
+          toggleInputType()
+        }
+      }
     }else{
-      onChapterInput(e)
+      if(e.code === "Tab"){
+        toggleInputType()
+      }else{
+        if(inputType === "Search"){
+          setSearchText(value)
+        }else{
+          onChapterInput(e)
+        }
+      }
     }
   }
 
@@ -111,16 +133,14 @@ function ChapterView({
 
   const handleDeletingChapterImage = (imageIndex: number) => () => onDeletingChapterImage(imageIndex)
 
-  const handleChaningImageIndex = (fromIndex: number) => (e: React.KeyboardEvent) => {
-    if(e.code === "Enter"){
-      (e.target as HTMLElement).blur();
-      e.preventDefault();
-      const toIndex = Math.min(Math.max(parseInt((e.target as HTMLElement).innerText), 1), chapters.length);
-      onChangingImageIndex(fromIndex, toIndex)
-    }
-    if(!e.code.includes("Digit") && !e.code.includes("Backspace")){
-      e.preventDefault()
-    }
+  const handleChaningImageIndex = (index: number) => () => {
+    setInputType("Change index")
+    fromIndex = index
+    const input = document.querySelector("#chapter_input") as HTMLInputElement;
+    input.placeholder = `Change image index from #${index+1} to`
+    input.type = "number"
+    input.value = ""
+    input.focus()
   }
 
   return (
@@ -128,12 +148,12 @@ function ChapterView({
       <div className="add_chapter">
         <input
           type="text"
-          id="add_chapter_input"
+          id="chapter_input"
           placeholder="Type here to create a chapter!"
-          onKeyDown={handleInput}
+          onKeyUp={handleInput}
         />
-        <div style={{ backgroundColor: isSearching ? "grey" : "rgb(85, 118, 190)", borderColor: isSearching ? "grey" : "rgb(85, 118, 190)" }} className="add_chapter_button" onClick={toggleInputType}>
-          {isSearching ? "Search" : "Create"}
+        <div style={{ backgroundColor: inputType === "Create" ? "rgb(85, 118, 190)" : (inputType === "Search" ? "grey" : "rgb(223, 219, 15)") }} className="chapter_button" onClick={toggleInputType}>
+          <span>{inputType}</span>
         </div>
       </div>
       <div className="chapter_heading">
@@ -167,10 +187,9 @@ function ChapterView({
               (chapter.images!.length > 0 ? (
                 chapter.images!.map((image: ImageInfo, index) => (
                   <div className="chapter_image" onMouseEnter={onMouseEnter(image.path || "")} onMouseLeave={onMouseLeave(image.path || "")}>
-                    <div className="chapter_image_index" contentEditable onKeyDown={handleChaningImageIndex(index)}>{index+1}</div>
-                    <div>.</div>
-                    <div className='chapter_image_name'>{image.name}</div>
-                    <div className="delete_chapter_image" onClick={handleDeletingChapterImage(index)}>x</div>
+                    <div className='chapter_image_name'>{(index+1) + "." + image.name}</div>
+                    <MdOutlineSwapVerticalCircle className='change_chapter_image_index' onClick={handleChaningImageIndex(index)}/>
+                    <IoMdRemoveCircleOutline className='delete_chapter_image' onClick={handleDeletingChapterImage(index)}/>
                   </div>
                 ))
               ) : (

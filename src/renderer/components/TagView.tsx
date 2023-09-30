@@ -17,6 +17,16 @@ type TagViewProps = {
 };
 
 const activeColor = 'rgb(122, 245, 122)';
+const quickActions = [{
+  action: "Match SD",
+  tooltip: "Quick update action: match the current tags with stable diffusion prompt if available (case insensitive, unmatch tags are ignored)"
+}, {
+  action: "Extract SD",
+  tooltip: "Quick update action: extract tags from stable diffusion prompt if available (case insensitive, filter out by current tags)"
+}, {
+  action: "Undo",
+  tooltip: "Undo all updates in the history list"
+}]
 
 function TagView({
   tags,
@@ -77,7 +87,7 @@ function TagView({
     <div>
       <div className="add_tags">
         <input type="text" id="add_tag_input" placeholder='Press Tab to change type' onKeyDown={onTagMade} />
-        <div style={{ backgroundColor: tagColor, borderColor: tagColor }} className="tag_type" onClick={toggleTagType}>
+        <div style={{ backgroundColor: tagColor }} className="tag_type" onClick={toggleTagType}>
           {tagType}
         </div>
       </div>

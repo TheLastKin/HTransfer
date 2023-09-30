@@ -12,12 +12,12 @@ import path from 'path';
 import { app, BrowserWindow, shell, ipcMain, dialog, IpcMainInvokeEvent, IpcMainEvent } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
-import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 import fs from 'fs';
-import InstantiateExpress from './app';
 import sizeOf from 'image-size'
 import { ImageInfo } from 'renderer/constant/types';
+import Store from 'electron-store'
+// import InstantiateExpress from './app';
 
 let stopLoadingImage = false;
 
@@ -28,6 +28,8 @@ class AppUpdater {
     autoUpdater.checkForUpdatesAndNotify();
   }
 }
+
+// InstantiateExpress()
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -87,6 +89,7 @@ const createWindow = async () => {
       preload: app.isPackaged
         ? path.join(__dirname, 'preload.js')
         : path.join(__dirname, '../../.erb/dll/preload.js'),
+      webSecurity: false,
     },
   });
 
@@ -129,7 +132,9 @@ const readDir = (path: string) => {
     const files = fs.readdirSync(path)
     const images: ImageInfo[] = []
     for(let file of files){
-      images.push({ ...sizeOf(`${path + "/" + file}`), name: file, createdDate: fs.statSync(`${path + "/" + file}`).birthtimeMs, path: path + "\\" + file })
+      if(/\.png|\.jpg$/i.test(file)){
+        images.push({ ...sizeOf(`${path + "/" + file}`), name: file, createdDate: fs.statSync(`${path + "/" + file}`).birthtimeMs, path: path + "\\" + file })
+      }
     }
     images.sort((a, b) => (b.createdDate || 0) - (a.createdDate || 0))
     return { dirPath: path, images: images }
@@ -150,6 +155,46 @@ const onDirectoryChosen = (e: IpcMainInvokeEvent, path: string) => {
   return readDir(path)
 }
 
+const onRequestAssociatedFile = () => {
+  return process.argv.find(path => /\.png|\.jpg$/.test(path)) || ""
+}
+
+const store = new Store()
+
+ipcMain.handle('getData', (event, key) => {
+  return store.get(key)
+})
+ipcMain.on('setData', (event, key, data) => {
+  store.set(key, data)
+})
+ipcMain.handle("onRequestAssociatedFile", onRequestAssociatedFile)
+ipcMain.handle("chooseDirectory", chooseDirectory)
+ipcMain.handle("onDirectoryChosen", onDirectoryChosen)
+
+const instanceLock = app.requestSingleInstanceLock()
+
+if(!instanceLock){
+  app.quit()
+}else{
+  app.on('second-instance', () => {
+    if(mainWindow){
+      mainWindow.webContents.send("onExternalFileOpen", onRequestAssociatedFile())
+      if(mainWindow.isMinimized()){
+        mainWindow.restore()
+      }
+      mainWindow.focus()
+    }
+  })
+  app.on('ready', () => {
+    createWindow()
+    app.on('activate', () => {
+      // On macOS it's common to re-create a window in the app when the
+      // dock icon is clicked and there are no other windows open.
+      if (mainWindow === null) createWindow();
+    });
+  })
+}
+
 app.on('window-all-closed', () => {
   // Respect the OSX convention of having the application in memory even
   // after all windows have been closed
@@ -157,18 +202,3 @@ app.on('window-all-closed', () => {
     app.quit();
   }
 });
-
-app
-  .whenReady()
-  .then(() => {
-    InstantiateExpress()
-    ipcMain.handle("chooseDirectory", chooseDirectory)
-    ipcMain.handle("onDirectoryChosen", onDirectoryChosen)
-    createWindow();
-    app.on('activate', () => {
-      // On macOS it's common to re-create a window in the app when the
-      // dock icon is clicked and there are no other windows open.
-      if (mainWindow === null) createWindow();
-    });
-  })
-  .catch(console.log);

@@ -1,16 +1,15 @@
 .info_panel{
   position: absolute;
-  right: 0;
-  top: 100%;
-  width: calc(35% - 30px);
-  max-width: 375px;
+  right: -375px;
+  top: 0;
+  width: 345px;
   height: calc(100% - 30px);
   padding: 15px;
   border-left: 1px solid white;
   background-color: rgba(0, 0, 0, 0.8);
   backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
   overflow-y: auto;
+  transition: right 0.4s ease-out;
 }
 .info_name{
   position: relative;

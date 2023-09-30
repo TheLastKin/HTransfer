@@ -114,7 +114,7 @@ const FilterPanel = () => {
       (getTypeValue(a.type) + a.name.localeCompare(b.name)) - getTypeValue(b.type))
     }
     if(tagFilter.type === "Occurences"){
-      newTags.sort((a: UniqueTag, b: UniqueTag) => tagFilter.asc ? b.numberOfOccurence - a.numberOfOccurence : a.numberOfOccurence - b.numberOfOccurence)
+      newTags.sort((a: UniqueTag, b: UniqueTag) => tagFilter.asc ? a.numberOfOccurence - b.numberOfOccurence : b.numberOfOccurence - a.numberOfOccurence)
     }
     return newTags
   }

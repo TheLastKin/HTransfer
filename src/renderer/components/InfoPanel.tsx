@@ -1,27 +1,29 @@
-import React, { useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import '../componentCss/info_panel.css'
-import { ImageInfo } from 'renderer/constant/types';
+import { ImageInfo, Tag } from 'renderer/constant/types';
+import { AppContext } from 'renderer/constant/context';
 
 type InfoPanelProps = {
   info: ImageInfo | null,
-  onPanelClosed: () => void
+  onPanelClosed: () => void,
+  onImageChanged: (info: ImageInfo) => void
 }
 
 const commonTagColor = 'rgb(85, 118, 190)';
 const charTagColor = 'rgb(181, 184, 6)';
 const specialTagColor = 'rgb(221, 34, 50)';
 
-const InfoPanel = ({ info, onPanelClosed }: InfoPanelProps) => {
+const InfoPanel = ({ info, onPanelClosed, onImageChanged }: InfoPanelProps) => {
   const [SDprops, setSDprops] = useState({ prompt: "", negativePrompt: "", genProps: "" })
-  console.log(info)
+  const { imageFilter, setImageFilter, savedInfos, saveImageInfos } = useContext(AppContext)
 
   useEffect(() => {
     if(info?.path){
-      fetchSDprops();
+      extractSDprops();
     }
   }, [info])
 
-  const fetchSDprops = async () => {
+  const extractSDprops = async () => {
     let view = (document.querySelector(`.image_card[data-path="${info?.path.replace(/\\/g, "\\\\")}"]`) as HTMLElement);
     if(view){
       let SDdata: string | undefined = view.dataset.SDdata
@@ -33,6 +35,24 @@ const InfoPanel = ({ info, onPanelClosed }: InfoPanelProps) => {
       }
     }else{
       setSDprops({ prompt: "", negativePrompt: "", genProps: "" })
+    }
+  }
+
+  const getBackgroundColor = (type: string) => {
+    return type === "common" ? commonTagColor : (type === "char" ? charTagColor : specialTagColor)
+  }
+
+  const selectTag = (tag: Tag) => () => {
+    if(!imageFilter.selectedTags.some(t => t.name === tag.name && t.type === tag.type)){
+      setImageFilter({ ...imageFilter, selectedTags: [...imageFilter.selectedTags, tag]})
+    }
+  }
+
+  const deleteTag = (tag: Tag) => () => {
+    if(info){
+      let newInfo: ImageInfo = { ...info, tags: info.tags?.filter(t => t.name !== tag.name || t.type !== tag.type) }
+      saveImageInfos(savedInfos.map(i => i.path === newInfo.path ? newInfo : i))
+      onImageChanged(newInfo)
     }
   }
 
@@ -59,7 +79,7 @@ const InfoPanel = ({ info, onPanelClosed }: InfoPanelProps) => {
         <div className="info_tag_list">
           {
             info?.tags?.map(tag => (
-              <div style={{ backgroundColor: tag.type === "common" ? commonTagColor : (tag.type === "char" ? charTagColor : specialTagColor)}} className="info_tag">{tag.name}</div>
+              <div style={{ backgroundColor: getBackgroundColor(tag.type) }} className="info_tag" onClick={selectTag(tag)} onContextMenu={deleteTag(tag)}>{tag.name}</div>
             ))
           }
         </div>
