@@ -125,6 +125,7 @@ function Hello() {
       modal.style.zIndex = "5";
       modal.style.opacity = "1";
       imageView.style.opacity = '1';
+      removeOverlap()
     }
   }
 
@@ -241,7 +242,7 @@ function Hello() {
   const removeOverlap = () => {
     const overlap = document.querySelector('.image_overlap') as HTMLElement;
     if (overlap) {
-      (document.querySelector('.content') as HTMLElement).removeChild(overlap);
+      overlap.remove()
     }
   };
 

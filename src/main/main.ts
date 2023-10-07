@@ -161,11 +161,6 @@ const onRequestAssociatedFile = () => {
   return process.argv.find(path => /\.png|\.jpg$/.test(path)) || ""
 }
 
-const onExternalFileOpen = () => {
-  let path = process.argv[process.argv.length-1];
-  return /\.png|\.jpg$/.test(path) ? path : ""
-}
-
 const store = new Store()
 
 ipcMain.handle('getData', (event, key) => {
@@ -186,9 +181,11 @@ const instanceLock = app.requestSingleInstanceLock()
 if(!instanceLock){
   app.quit()
 }else{
-  app.on('second-instance', () => {
+  app.on('second-instance', (event, argv) => {
     if(mainWindow){
-      mainWindow.webContents.send("onExternalFileOpen", onExternalFileOpen())
+      if(/.png|.jpg$/.test(argv[argv.length-1])){
+        mainWindow.webContents.send("onExternalFileOpen", argv[argv.length-1])
+      }
       if(mainWindow.isMinimized()){
         mainWindow.restore()
       }
