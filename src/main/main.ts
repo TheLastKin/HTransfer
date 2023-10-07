@@ -183,7 +183,7 @@ if(!instanceLock){
 }else{
   app.on('second-instance', (event, argv) => {
     if(mainWindow){
-      if(/.png|.jpg$/.test(argv[argv.length-1])){
+      if(/.png|.jpg$/i.test(argv[argv.length-1])){
         mainWindow.webContents.send("onExternalFileOpen", argv[argv.length-1])
       }
       if(mainWindow.isMinimized()){
