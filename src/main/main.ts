@@ -85,11 +85,13 @@ const createWindow = async () => {
     width: 1300,
     height: 1000,
     icon: getAssetPath('icon.png'),
+    fullscreenable: true,
     webPreferences: {
       preload: app.isPackaged
         ? path.join(__dirname, 'preload.js')
         : path.join(__dirname, '../../.erb/dll/preload.js'),
       webSecurity: false,
+      webviewTag: true
     },
   });
 
@@ -159,6 +161,11 @@ const onRequestAssociatedFile = () => {
   return process.argv.find(path => /\.png|\.jpg$/.test(path)) || ""
 }
 
+const onExternalFileOpen = () => {
+  let path = process.argv[process.argv.length-1];
+  return /\.png|\.jpg$/.test(path) ? path : ""
+}
+
 const store = new Store()
 
 ipcMain.handle('getData', (event, key) => {
@@ -166,6 +173,9 @@ ipcMain.handle('getData', (event, key) => {
 })
 ipcMain.on('setData', (event, key, data) => {
   store.set(key, data)
+})
+ipcMain.on('toggleFullScreen', (event: any, fullscreen: boolean) => {
+  mainWindow?.setFullScreen(fullscreen)
 })
 ipcMain.handle("onRequestAssociatedFile", onRequestAssociatedFile)
 ipcMain.handle("chooseDirectory", chooseDirectory)
@@ -178,7 +188,7 @@ if(!instanceLock){
 }else{
   app.on('second-instance', () => {
     if(mainWindow){
-      mainWindow.webContents.send("onExternalFileOpen", onRequestAssociatedFile())
+      mainWindow.webContents.send("onExternalFileOpen", onExternalFileOpen())
       if(mainWindow.isMinimized()){
         mainWindow.restore()
       }

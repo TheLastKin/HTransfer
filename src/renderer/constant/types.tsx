@@ -18,6 +18,7 @@ type ImageInfo = {
   width?: number,
   height?: number,
   rating?: number,
+  SDprompt?: string,
   chapters?: string[],
   createdDate?: number,
   lastModifiedDate?: number
@@ -26,7 +27,8 @@ type ImageInfo = {
 type UpdateHistoryProps = {
   name: string,
   path: string,
-  tags: Tag[]
+  tags: Tag[],
+  status: string
 }
 
 interface UniqueTag extends Tag {
@@ -66,6 +68,11 @@ type ImageFilter = {
   },
 }
 
+type AppSettings = {
+  showInRow: boolean,
+  colorScheme: number
+}
+
 const commonTagColor = 'rgb(85, 118, 190)';
 const charTagColor = 'rgb(181, 184, 6)';
 const specialTagColor = 'rgb(221, 34, 50)';
@@ -94,6 +101,36 @@ const initFilter: ImageFilter = {
   }
 }
 
+const colorGradients = [{
+  top: "#fedc2a",
+  middle: "#dd5789",
+  bottom: "#7a2c9e"
+}, {
+  top: "#959BA3",
+  middle: "#848B98",
+  bottom: "#D7D7D8"
+}, {
+  top: "#7fffc3",
+  middle: "#0d9d9d",
+  bottom: "#7AE5F5"
+}, {
+  top: "#ffd67f",
+  middle: "#65359c",
+  bottom: "#7a64c7"
+}, {
+  top: "#ebff7c",
+  middle: "#3e9c35",
+  bottom: "#64c785"
+}, {
+  top: "#ffdc7c",
+  middle: "#a56530",
+  bottom: "#c76464"
+}]
+
+const getBackgroundColor = (tagType: string) => {
+  return tagType === "common" ? commonTagColor : (tagType === "char" ? charTagColor : specialTagColor)
+}
+
 export {
   Chapter,
   ImageInfo,
@@ -104,10 +141,13 @@ export {
   ModalProps,
   Action,
   ImageFilter,
+  AppSettings,
   commonTagColor,
   charTagColor,
   specialTagColor,
   activeColor,
   actions,
-  initFilter
+  initFilter,
+  colorGradients,
+  getBackgroundColor
 }

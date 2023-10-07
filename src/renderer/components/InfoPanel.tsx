@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useState } from 'react';
 import '../componentCss/info_panel.css'
-import { ImageInfo, Tag } from 'renderer/constant/types';
+import { ImageInfo, Tag, getBackgroundColor } from 'renderer/constant/types';
 import { AppContext } from 'renderer/constant/context';
 
 type InfoPanelProps = {
@@ -24,22 +24,13 @@ const InfoPanel = ({ info, onPanelClosed, onImageChanged }: InfoPanelProps) => {
   }, [info])
 
   const extractSDprops = async () => {
-    let view = (document.querySelector(`.image_card[data-path="${info?.path.replace(/\\/g, "\\\\")}"]`) as HTMLElement);
-    if(view){
-      let SDdata: string | undefined = view.dataset.SDdata
-      if(SDdata){
-        let split = SDdata.split("\n")
-        setSDprops({ prompt: split[0], negativePrompt: split[1], genProps: split[2] })
-      }else{
-        setSDprops({ prompt: "", negativePrompt: "", genProps: "" })
-      }
+    let SDdata: string | undefined = info?.SDprompt
+    if(SDdata){
+      let split = SDdata.split("\n")
+      setSDprops({ prompt: split[0], negativePrompt: split[1], genProps: split[2] })
     }else{
       setSDprops({ prompt: "", negativePrompt: "", genProps: "" })
     }
-  }
-
-  const getBackgroundColor = (type: string) => {
-    return type === "common" ? commonTagColor : (type === "char" ? charTagColor : specialTagColor)
   }
 
   const selectTag = (tag: Tag) => () => {

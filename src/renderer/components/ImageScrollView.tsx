@@ -14,32 +14,32 @@ type ImageScrollViewProps = {
   onInfoIconClicked: (image: ImageInfo) => void
 }
 
-const columns = [5, 4, 3, 2, 1]
+const indexes = [5, 4, 3, 2, 1]
 const maxImageLoad = 30;
 let isLoadingNextPage = false
 
 const ImageScrollView = ({ selectedImage, images, onImageClicked, onImageContextMenu, onImageMouseEnter, onImageMouseLeave, onInfoIconClicked }: ImageScrollViewProps) => {
   const [page, setPage] = useState(1);
   const [filteredImages, setFilteredImages] = useState<ImageInfo[]>([])
-  const { savedInfos, imageFilter } = useContext(AppContext)
+  const { savedInfos, imageFilter, appSettings } = useContext(AppContext)
   const pageRef = useRef(1)
 
   pageRef.current = page
 
   useEffect(() => {
-    if(images.length > 0){
-      setPage(1)
-      filterImage()
-    }
+    setPage(1)
+    filterImage()
   }, [images])
 
   useEffect(() => {
-    if(images.length > 0){
-      filterImage()
-    }
+    filterImage()
   }, [imageFilter])
 
   const filterImage = () => {
+    if(images.length === 0){
+      setFilteredImages([])
+      return;
+    }
     let newImages = images.map(i => (savedInfos.find(i2 => i.path === i2.path) || i))
     if(imageFilter.selectedTags.length > 0){
       let direction = imageFilter.extraSettings.viewByTagOrder;
@@ -141,7 +141,23 @@ const ImageScrollView = ({ selectedImage, images, onImageClicked, onImageContext
   return (
     <div className='image_scroll_view' onScroll={onScroll}>
       {
-        columns.map(value => (
+        appSettings.showInRow ?
+        <div className="row">
+          {
+            filteredImages.filter((image, index) => index <= maxImageLoad * page).map((image) =>
+              <ImageCard
+                image={image}
+                selected={image.path === selectedImage?.path}
+                index={filteredImages.findIndex(i => i.path === image.path)}
+                onImageClicked={onImageClicked}
+                onImageContextMenu={onImageContextMenu}
+                onImageMouseEnter={onImageMouseEnter}
+                onImageMouseLeave={onImageMouseLeave}
+                onInfoIconClicked={onInfoIconClicked}
+              />)
+          }
+        </div> :
+        indexes.map(value => (
           <div className="column">
             {
               filteredImages.filter((image, index) => (index+value)%5 === 0 && index <= maxImageLoad * page).map((image) =>

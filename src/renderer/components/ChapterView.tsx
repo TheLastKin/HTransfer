@@ -16,6 +16,7 @@ type ChapterViewProps = {
   onViewingChapter: (chapter: Chapter) => void;
   onDeletingChapterImage: (imageIndex: number) => void;
   onChangingImageIndex: (fromIndex: number, toIndex: number) => void;
+  onChangingChapterName: (fromName: string, toName: string) => void;
   onDeletingChapter: (chapterName: string) => void;
 };
 
@@ -32,6 +33,7 @@ function ChapterView({
   onViewingChapter,
   onDeletingChapterImage,
   onChangingImageIndex,
+  onChangingChapterName,
   onDeletingChapter
 }: ChapterViewProps) {
   const [inputType, setInputType] = useState("Create");
@@ -102,6 +104,11 @@ function ChapterView({
           toggleInputType()
         }
       }
+    }else if(inputType === "Change name"){
+      if(e.code === "Enter"){
+        onChangingChapterName(editingChapter.name, value)
+        toggleInputType()
+      }
     }else{
       if(e.code === "Tab"){
         toggleInputType()
@@ -125,7 +132,14 @@ function ChapterView({
 
   const handleShowingImages = () => onViewingChapter(editingChapter)
 
-  const handleRenamingChapter = () => {}
+  const handleRenamingChapter = () => {
+    setInputType("Change name")
+    const input = document.querySelector("#chapter_input") as HTMLInputElement;
+    input.placeholder = `Rename to`
+    input.type = "text"
+    input.value = editingChapter.name
+    input.focus()
+  }
 
   const handleDeletingChapter = () => {
     onDeletingChapter(editingChapter.name)
@@ -143,6 +157,13 @@ function ChapterView({
     input.focus()
   }
 
+  const getBackgroundColor = () => {
+    if(inputType === "Create") return "rgb(85, 118, 190)"
+    if(inputType === "Search") return "grey"
+    if(inputType === "Change name") return "indigo"
+    return "rgb(223, 219, 15)"
+  }
+
   return (
     <div className="chapter_view">
       <div className="add_chapter">
@@ -152,7 +173,7 @@ function ChapterView({
           placeholder="Type here to create a chapter!"
           onKeyUp={handleInput}
         />
-        <div style={{ backgroundColor: inputType === "Create" ? "rgb(85, 118, 190)" : (inputType === "Search" ? "grey" : "rgb(223, 219, 15)") }} className="chapter_button" onClick={toggleInputType}>
+        <div style={{ backgroundColor: getBackgroundColor() }} className="chapter_button" onClick={toggleInputType}>
           <span>{inputType}</span>
         </div>
       </div>

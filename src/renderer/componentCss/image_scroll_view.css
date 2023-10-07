@@ -11,7 +11,7 @@
   transition: margin-right 0.4s ease-out;
   transform: translate3d(0,0,0);
 }
-.column{
+.image_scroll_view>.column{
   position: relative;
   width: calc(20% - 10px);
   height: fit-content;
@@ -20,6 +20,18 @@
   padding-top: 10px;
   padding-bottom: 10px;
 }
-.column>div:nth-child(n+2){
+.image_scroll_view>.column>div:nth-child(n+2){
   margin-top: 10px;
+}
+.image_scroll_view>.row{
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  &>.image_card{
+    width: calc(20% - 10px);
+    height: fit-content;
+    margin-top: 10px;
+  }
 }

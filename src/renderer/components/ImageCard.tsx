@@ -61,7 +61,6 @@ type ImageCardProps = {
 }
 
 const ImageCard = ({ image, index, selected, onImageClicked, onImageContextMenu, onImageMouseEnter, onImageMouseLeave, onInfoIconClicked }: ImageCardProps) => {
-  const [isSDImage, setSDImage] = useState(false)
   const { imageFilter } = useContext(AppContext)
   const viewRef = useRef(null)
   const imageRef = useRef<ImageInfo>()
@@ -78,35 +77,6 @@ const ImageCard = ({ image, index, selected, onImageClicked, onImageContextMenu,
       intersect.disconnect()
     }
   }, [])
-
-  useEffect(() => {
-    loadImage()
-  }, [image])
-
-  const loadImage = async () => {
-    const container = document.querySelector(`.image_card[data-path="${image.path.replace(/\\/g, "\\\\")}"]`) as HTMLElement
-    let res = await fetch(image.path)
-    if(res.status === 200){
-      let buffer = Buffer.from(await res.arrayBuffer());
-      try {
-        let chunks = extract(buffer);
-        const textChunks = chunks.filter((chunk: any) => chunk.name === "tEXt").map((chunk: any) => text.decode(chunk.data));
-        if(textChunks[0]?.text?.includes("Sampler")){
-          container.dataset.SDdata = textChunks[0].text
-          setSDImage(true)
-        }else{
-          container.dataset.SDdata = ""
-          setSDImage(false)
-        }
-      } catch (error) {
-        container.dataset.SDdata = ""
-        setSDImage(false)
-      }
-    }else{
-      container.dataset.SDdata = ""
-      setSDImage(false)
-    }
-  }
 
   const onImageLoaded = (e: React.SyntheticEvent) => {
     const img = (e.target as HTMLImageElement);
@@ -170,7 +140,7 @@ const ImageCard = ({ image, index, selected, onImageClicked, onImageContextMenu,
         <div style={{ display: imageFilter.extraInfo.showName ? "flex" : "none" }} className="image_name">
           <span>{image.name}</span>
         </div>
-        {isSDImage && <div style={{ display: imageFilter.extraInfo.hasSDPrompt ? "flex" : "none" }} className="sd_image">SD</div>}
+        {image.SDprompt && <div style={{ display: imageFilter.extraInfo.hasSDPrompt ? "flex" : "none" }} className="sd_image">SD</div>}
       </div>
     </div>
   );

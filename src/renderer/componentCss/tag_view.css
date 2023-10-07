@@ -69,9 +69,9 @@
 }
 .tag_update_record{
   position: relative;
-  margin-top: 15px;
+  margin-top: 20px;
   width: 100%;
-  height: calc(200px - 32px);
+  height: calc(200px - 37px);
   display: block;
   border: 2px dashed rgb(122, 245, 122);
 }
@@ -95,61 +95,6 @@
   display: flex;
   align-items: center;
   margin-top: 12px;
-}
-.quick_match{
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 140px;
-  height: 20px;
-  background-color: rgba(22, 22, 22, 0.35);
-  border-radius: 3px;
-  cursor: pointer;
-  &:hover{
-    background-color: rgba(22, 22, 22, 0.45);
-  }
-  &>.edit_icon{
-    position: relative;
-    font-size: 14px;
-  }
-  &>span{
-    position: relative;
-    font-size: 14px;
-  }
-}
-.tooltip{
-  position: absolute;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  left: 142px;
-  top: -3px;
-}
-.tooltip>.tooltip_text{
-  position: absolute;
-  top: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  width: 220px;
-  height: 60px;
-  padding: 0 5px;
-  border: 1px solid white;
-  border-radius: 8px;
-  opacity: 0;
-  z-index: -1;
-  pointer-events: none;
-  transition: top 0.3s ease-out, opacity 0.3s ease-out;
-}
-.question_icon{
-  font-size: 14px;
-}
-.tooltip:hover .tooltip_text{
-  top: 22px;
-  opacity: 1;
-  z-index: 2;
 }
 .update_records{
   position: relative;

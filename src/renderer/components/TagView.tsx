@@ -6,6 +6,7 @@ import { MdModeEditOutline } from 'react-icons/md'
 import { FaRegQuestionCircle } from 'react-icons/fa'
 import { ModalContext } from 'renderer/constant/context';
 import { PiArrowsClockwiseFill } from 'react-icons/pi'
+import QuickAction from './QuickAction';
 
 type TagViewProps = {
   tags: Tag[];
@@ -13,18 +14,20 @@ type TagViewProps = {
   addType: string,
   onTagListChanged: (args: any) => void;
   onQuickMatch: () => void;
+  onQuickExtract: () => void;
+  onUndoUpdate: () => void;
   clearHistory: () => void
 };
 
 const activeColor = 'rgb(122, 245, 122)';
 const quickActions = [{
-  action: "Match SD",
+  type: "Match SD",
   tooltip: "Quick update action: match the current tags with stable diffusion prompt if available (case insensitive, unmatch tags are ignored)"
 }, {
-  action: "Extract SD",
-  tooltip: "Quick update action: extract tags from stable diffusion prompt if available (case insensitive, filter out by current tags)"
+  type: "Extract SD",
+  tooltip: "Quick update action: extract as common tags from stable diffusion prompt if available (case insensitive, filter out by current tags (masterpiece, best quality or paragraph-like prompt will be filtered by default))"
 }, {
-  action: "Undo",
+  type: "Undo",
   tooltip: "Undo all updates in the history list"
 }]
 
@@ -34,6 +37,8 @@ function TagView({
   addType,
   onTagListChanged,
   onQuickMatch,
+  onQuickExtract,
+  onUndoUpdate,
   clearHistory
 }: TagViewProps) {
   const [tagType, setTagType] = useState<string>("common")
@@ -43,6 +48,12 @@ function TagView({
     const clearView = document.querySelector(".clear") as HTMLElement;
     if(updateHistory.length > 0){
       clearView.style.display = "flex"
+      setTimeout(() => {
+        const lastView = document.querySelector(".update_history:last-child");
+        if(lastView){
+          lastView.scrollIntoView()
+        }
+      }, 200)
     }else{
       clearView.style.display = "none"
     }
@@ -83,6 +94,18 @@ function TagView({
     }
   };
 
+  const handleQuickAction = (type: string) => () => {
+    if(type === "Match SD"){
+      onQuickMatch()
+    }
+    if(type === "Extract SD"){
+      onQuickExtract()
+    }
+    if(type === "Undo"){
+      onUndoUpdate()
+    }
+  }
+
   return (
     <div>
       <div className="add_tags">
@@ -92,16 +115,11 @@ function TagView({
         </div>
       </div>
       <div className="tag_actions">
-        <div className="quick_match" onClick={onQuickMatch}>
-          <MdModeEditOutline className='edit_icon'/>
-          <span>Match SD prompts</span>
-        </div>
-        <div className="tooltip">
-          <FaRegQuestionCircle className='question_icon'/>
-          <div className="tooltip_text">
-            Quick update action: match the current tags with stable diffusion prompt if available (case insesitive, unmatch tags are ignored)
-          </div>
-        </div>
+        {
+          quickActions.map(action => (
+            <QuickAction action={action.type} tooltipText={action.tooltip} onQuickAction={handleQuickAction(action.type)}/>
+          ))
+        }
       </div>
       <div className="tags">
         <span>Type on the input to make a tag!</span>
@@ -115,7 +133,7 @@ function TagView({
           <span>Processing (0)</span>
         </div>
         <div className="clear" onClick={clearHistory}>
-          Clear
+          clear
         </div>
         {updateHistory.length === 0 ? (
           <div className="empty_record">
@@ -129,7 +147,7 @@ function TagView({
           </div>
         ) : (
           <div className="update_records">
-            {updateHistory.map((history, index) => <UpdateHistory name={`${index+1}.${history.name}`} path={history.path} tags={history.tags} />)}
+            {updateHistory.map((history, index) => <UpdateHistory name={`${index+1}.${history.name}`} path={history.path} tags={history.tags} status={history.status} />)}
           </div>
         )}
       </div>

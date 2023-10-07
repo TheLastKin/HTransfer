@@ -1,0 +1,68 @@
+.quick_action{
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  height: 20px;
+  padding: 0 5px;
+  background-color: rgba(22, 22, 22, 0.35);
+  border-radius: 3px;
+  cursor: pointer;
+  &:hover{
+    background-color: rgba(22, 22, 22, 0.45);
+  }
+  & .edit_icon{
+    position: relative;
+    font-size: 14px;
+    top: 1px;
+  }
+  & span{
+    position: relative;
+    font-size: 14px;
+  }
+}
+.quick_action:nth-child(n+2){
+  margin-left: 25px;
+}
+.tooltip{
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  right: -15px;
+  top: -3px;
+}
+.tooltip>.tooltip_text{
+  position: absolute;
+  top: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  width: 220px;
+  height: fit-content;
+  padding: 5px 8px;
+  border: 1px solid white;
+  background-color: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(5px);
+  border-radius: 8px;
+  opacity: 0;
+  z-index: -1;
+  pointer-events: none;
+  transition: top 0.3s ease-out, opacity 0.3s ease-out;
+}
+.quick_action:first-child .tooltip_text{
+  right: -140px;
+}
+.quick_action:last-child .tooltip_text{
+  right: -60px;
+}
+.question_icon{
+  font-size: 14px;
+}
+.tooltip:hover .tooltip_text{
+  top: 22px;
+  opacity: 1;
+  z-index: 2;
+}

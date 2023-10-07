@@ -9,15 +9,15 @@
   cursor: pointer;
   &>.image_card_content{
     position: relative;
-    width: inherit;
-    height: inherit;
+    width: 100%;
+    height: auto;
     border-radius: inherit;
     overflow: hidden;
   }
 }
 .image_card_highlight{
-  border-color: blue;
-  box-shadow: 0 0 5px 1px rgba(0, 0, 255, 0.65);
+  border-color: rgb(97, 97, 248);
+  box-shadow: 0 0 5px 1px rgba(75, 75, 243, 0.35);
 }
 .image{
   position: relative;

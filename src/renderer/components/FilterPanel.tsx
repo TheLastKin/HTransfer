@@ -1,9 +1,15 @@
 import React, { useEffect, useState, useContext } from 'react';
 import '../componentCss/filter_panel.css';
-import { ImageInfo, Tag, UniqueGroup, UniqueTag, actions, activeColor, charTagColor, commonTagColor, specialTagColor } from 'renderer/constant/types';
+import { ImageInfo, Tag, UniqueGroup, UniqueTag, actions, activeColor, charTagColor, commonTagColor, getBackgroundColor, specialTagColor } from 'renderer/constant/types';
 import { BsArrowUp, BsArrowDown, BsArrowLeft, BsArrowRight } from 'react-icons/bs'
 import { AppContext } from 'renderer/constant/context';
-import { BiSolidChevronRight, BiSolidChevronLeft } from 'react-icons/bi'
+import { BiSolidChevronRight, BiSolidChevronLeft, BiSearchAlt2, BiSolidChevronDown } from 'react-icons/bi'
+import { IoMdClose } from 'react-icons/io'
+
+type FilterPanelProps = {
+  currentSource: string,
+  onUpdatingAllTags: (tag: UniqueTag, type: string) => void
+}
 
 let anchorPoint = 0
 let initialTags: UniqueTag[] = []
@@ -13,14 +19,15 @@ let imageSortBy = ["Date created", "Date modified", "Most relevant"]
 let extraInfo = ["Image index", "Image name", "SD Image"]
 let extraSettings = ["By tag order", "Without selected tag"]
 
-const FilterPanel = () => {
+const FilterPanel = ({ currentSource, onUpdatingAllTags }: FilterPanelProps) => {
   const [tags, setTags] = useState<UniqueTag[]>([])
   const [tagFilter, setTagFilter] = useState({ type: "Alphabet", asc: true, showInGroup: false })
+  const [searchText, setSearchText] = useState("")
   const { savedInfos, imageFilter, setImageFilter } = useContext(AppContext)
 
   useEffect(() => {
     getUniqueTags();
-  }, [savedInfos])
+  }, [savedInfos, currentSource])
 
   useEffect(() => {
     if(tags.length > 0){
@@ -34,7 +41,7 @@ const FilterPanel = () => {
     initialTags = []
 
     for(let info of savedInfos){
-      if(!info.tags) continue;
+      if(!info.tags || (currentSource.length > 0 && currentSource !== info.path.substring(0, info.path.lastIndexOf("\\")))) continue;
 
       for(let tag of info.tags){
         let index = initialTags.findIndex((t) => t.name === tag.name && t.type === tag.type);
@@ -52,12 +59,14 @@ const FilterPanel = () => {
     anchorPoint = 12
     window.onmousemove = onMouseMove
     window.onmouseup = onMouseUp
+    document.body.style.cursor = "grab"
   }
 
   const onMouseUp = () => {
     anchorPoint = 0
     window.onmousemove = null
     window.onmouseup = null
+    document.body.style.cursor = ""
   }
 
   const onMouseMove = (e: MouseEvent) => {
@@ -65,10 +74,6 @@ const FilterPanel = () => {
       const panel = document.querySelector(".filter_panel") as HTMLElement;
       panel.style.top = `-${Math.min(Math.max(178 - (e.clientY - anchorPoint), 0), 178)}px`
     }
-  }
-
-  const getBackgroundColor = (tagType: string) => {
-    return tagType === "common" ? commonTagColor : (tagType === "char" ? charTagColor : specialTagColor)
   }
 
   const swapTagFilter = (type: string, showInGroup: boolean | null = null) => () => {
@@ -148,8 +153,46 @@ const FilterPanel = () => {
     setImageFilter({ ...imageFilter, selectedTags: imageFilter.selectedTags.filter(t => t.name !== tag.name || t.type !== tag.type)})
   }
 
+  const onSearching = (e: React.FormEvent) => {
+    setSearchText((e.target as HTMLInputElement).value)
+  }
+
+  const clearSearch = () => {
+    setSearchText("")
+  }
+
+  const toggleTagGroup = (e: React.MouseEvent) => {
+    const container = (e.target as HTMLElement).parentElement as HTMLElement;
+    if(container.className === "tag_group"){
+      const listView = container.querySelector(".tag_list") as HTMLElement
+      const chevron = container.querySelector(".toggle_expand") as HTMLElement;
+      if(listView.style.height === "0px"){
+        listView.style.height = "auto"
+        chevron.style.rotate = "0deg"
+      }else{
+        listView.style.height = "0"
+        chevron.style.rotate = "-90deg"
+      }
+    }
+  }
+
+  const onTagContextMenu = (tag: UniqueTag) => (e: React.MouseEvent) => {
+    const menu = document.querySelector(".tag_context_menu") as HTMLElement;
+    menu.style.left = `${e.clientX - 10}px`;
+    menu.style.top = `${e.clientY - 40}px`;
+    menu.style.display = "block";
+    (menu.firstChild as HTMLElement).onclick = () => onUpdatingAllTags(tag, "update");
+    (menu.lastChild as HTMLElement).onclick = () => onUpdatingAllTags(tag, "delete");
+  }
+
+  const blurMenu = () => {
+    const menu = document.querySelector(".tag_context_menu") as HTMLElement;
+    menu.style.display = "none";
+
+  }
+
   return (
-    <div className='filter_panel'>
+    <div className='filter_panel' onClick={blurMenu}>
       <div className="filter_panel_content">
         <div className="filter_panel_left">
           <div className="image_tag_filter">
@@ -205,6 +248,11 @@ const FilterPanel = () => {
                 </div>
               ))}
             </div>
+            <div className="search_tag">
+              <BiSearchAlt2 className='search_icon'/>
+              <input type="text" id="search_tag_input" onInput={onSearching} value={searchText}/>
+              <IoMdClose className='clear_search' onClick={clearSearch}/>
+            </div>
             <div className="tag_group_by">
               <div style={{ color: tagFilter.showInGroup ? activeColor : "white" }} className="check_group" onClick={swapTagFilter("", !tagFilter.showInGroup)}>
                 <div className="check_value">Show in group</div>
@@ -214,17 +262,20 @@ const FilterPanel = () => {
           <div className="tag_groups">
             {getUniqueTagGroup().map((group) => (
               <div className="tag_group">
-                <div className="heading">
+                <div className="heading" onClick={toggleTagGroup}>
+                  <BiSolidChevronDown className='toggle_expand'/>
                   <span>{group.name + ` (${group.numberOfTags})`}</span>
                   <span></span>
                 </div>
                 <div className="tag_list">
-                  {tags.filter((tag: UniqueTag) => tag.type === group.name || group.name === "All").map(tag => (
+                  {tags.filter((tag: UniqueTag) => tag.name.includes(searchText) && (tag.type === group.name || group.name === "All")).map(tag => (
                     <div style={{
                       display: imageFilter.selectedTags?.some(t => t.name === tag.name && t.type === tag.type) ? "none" : "flex",
                       backgroundColor: getBackgroundColor(tag.type)
                       }}
-                      className="tag" onClick={selectTag(tag)}>
+                      className="tag"
+                      onClick={selectTag(tag)}
+                      onContextMenu={onTagContextMenu(tag)}>
                       {tag.name + ` (${tag.numberOfOccurence})`}
                     </div>
                   ))}
@@ -232,6 +283,10 @@ const FilterPanel = () => {
               </div>
             ))}
           </div>
+        </div>
+        <div className="tag_context_menu">
+          <div>Update All</div>
+          <div>Remove All</div>
         </div>
       </div>
       <div className="anchor_point">

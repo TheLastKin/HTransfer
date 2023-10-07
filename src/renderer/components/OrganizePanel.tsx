@@ -20,7 +20,10 @@ type OrganizePanelProps = {
   onChangingImageIndex: (fromIndex: number, toIndex: number) => void;
   onDeletingChapter: (chapterName: string) => void;
   onQuickMatch: () => void;
+  onQuickExtract: () => void;
+  onUndoUpdate: () => void;
   clearHistory: () => void;
+  onChangingChapterName: (oldName: string, newName: string) => void;
 };
 
 function OrganizePanel({
@@ -38,13 +41,25 @@ function OrganizePanel({
   onChangingImageIndex,
   onDeletingChapter,
   onQuickMatch,
-  clearHistory
+  onQuickExtract,
+  onUndoUpdate,
+  clearHistory,
+  onChangingChapterName
 }: OrganizePanelProps) {
 
   return (
     <div className="organize_panel">
       <div className="organize_panel_content">
-        <TagView tags={tags} addType={addType} updateHistory={updateHistory} onTagListChanged={onTagListChanged} onQuickMatch={onQuickMatch} clearHistory={clearHistory}/>
+        <TagView
+          tags={tags}
+          addType={addType}
+          updateHistory={updateHistory}
+          onTagListChanged={onTagListChanged}
+          onQuickMatch={onQuickMatch}
+          clearHistory={clearHistory}
+          onQuickExtract={onQuickExtract}
+          onUndoUpdate={onUndoUpdate}
+        />
         <div className="horizontal_divider" />
         <ChapterView
           chapter={chapter}
@@ -57,6 +72,7 @@ function OrganizePanel({
           onDeletingChapterImage={onDeletingChapterImage}
           onChangingImageIndex={onChangingImageIndex}
           onDeletingChapter={onDeletingChapter}
+          onChangingChapterName={onChangingChapterName}
         />
       </div>
     </div>

@@ -12,7 +12,8 @@ const electronHandler = {
   chooseDirectory: (maxImageLoad: number) => ipcRenderer.invoke('chooseDirectory', maxImageLoad),
   onDirectoryChosen: (path: string) => ipcRenderer.invoke("onDirectoryChosen", path),
   requestAssociatedFile: () => ipcRenderer.invoke("onRequestAssociatedFile"),
-  onExternalFileOpen: (callback: any) => ipcRenderer.on("onExternalFileOpen", callback)
+  onExternalFileOpen: (callback: any) => ipcRenderer.on("onExternalFileOpen", callback),
+  toggleFullScreen: (fullscreen: boolean) => ipcRenderer.send("toggleFullScreen", fullscreen)
 };
 
 contextBridge.exposeInMainWorld('electron', electronHandler);

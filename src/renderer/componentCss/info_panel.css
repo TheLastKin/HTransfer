@@ -54,6 +54,7 @@
 }
 .info_tag_list{
   position: relative;
+  flex: 1;
   display: flex;
   flex-wrap: wrap;
   top: -5px;
