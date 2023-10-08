@@ -17,7 +17,11 @@
 }
 .image_card_highlight{
   border-color: rgb(97, 97, 248);
-  box-shadow: 0 0 5px 1px rgba(75, 75, 243, 0.35);
+  box-shadow: 0 0 5px 1px rgba(75, 75, 243);
+}
+.image_card_highlight_2{
+  border-color: rgb(122, 245, 122);
+  box-shadow: 0 0 5px 1px rgba(82, 189, 82, 0.65);
 }
 .image{
   position: relative;

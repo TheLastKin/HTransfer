@@ -52,7 +52,7 @@ const getAverageRGB = (imgEl: HTMLImageElement) => {
 type ImageCardProps = {
   image: ImageInfo,
   index: number,
-  selected: boolean,
+  highlight: number,
   onImageClicked: (e: React.MouseEvent, index: number) => void,
   onImageContextMenu: (image: ImageInfo) => void,
   onImageMouseEnter: (e: React.MouseEvent, image: ImageInfo) => void,
@@ -60,7 +60,7 @@ type ImageCardProps = {
   onInfoIconClicked: (image: ImageInfo) => void
 }
 
-const ImageCard = ({ image, index, selected, onImageClicked, onImageContextMenu, onImageMouseEnter, onImageMouseLeave, onInfoIconClicked }: ImageCardProps) => {
+const ImageCard = ({ image, index, highlight, onImageClicked, onImageContextMenu, onImageMouseEnter, onImageMouseLeave, onInfoIconClicked }: ImageCardProps) => {
   const { imageFilter } = useContext(AppContext)
   const viewRef = useRef(null)
   const imageRef = useRef<ImageInfo>()
@@ -122,8 +122,18 @@ const ImageCard = ({ image, index, selected, onImageClicked, onImageContextMenu,
     onInfoIconClicked({ ...image, width: img.naturalWidth, height: img.naturalHeight })
   }
 
+  const getClassName = () => {
+    if(highlight === 1){
+      return "image_card image_card_highlight"
+    }
+    if(highlight === 2){
+      return "image_card image_card_highlight_2"
+    }
+    return "image_card"
+  }
+
   return (
-    <div ref={viewRef} className={`image_card ${selected ? "image_card_highlight" : ""}`} data-path={image.path}>
+    <div ref={viewRef} className={getClassName()} data-path={image.path}>
       <div className="image_card_content" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
         <img
           src={image.path}

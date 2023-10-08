@@ -73,6 +73,10 @@ type AppSettings = {
   colorScheme: number
 }
 
+interface HighlightImage extends ImageInfo{
+  highlightType: number
+}
+
 const commonTagColor = 'rgb(85, 118, 190)';
 const charTagColor = 'rgb(181, 184, 6)';
 const specialTagColor = 'rgb(221, 34, 50)';
@@ -142,6 +146,7 @@ export {
   Action,
   ImageFilter,
   AppSettings,
+  HighlightImage,
   commonTagColor,
   charTagColor,
   specialTagColor,

@@ -27,11 +27,11 @@
   position: relative;
   display: flex;
   flex: 1;
+  height: fit-content;
   flex-wrap: wrap;
-  justify-content: space-evenly;
   &>.image_card{
     width: calc(20% - 10px);
     height: fit-content;
-    margin-top: 10px;
+    margin: 10px 4px 0 4px;
   }
 }

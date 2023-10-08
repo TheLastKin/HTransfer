@@ -4,13 +4,13 @@ import { FcOpenedFolder } from 'react-icons/fc';
 import { BiSolidChevronDown } from 'react-icons/bi';
 import MessageModal from './components/MessageModal';
 import ImageViewer from './components/ImageViewer';
-import { Chapter, ImageInfo, ModalProps, Tag, UniqueTag, UpdateHistoryProps, actions, colorGradients, initFilter } from './constant/types';
+import { Chapter, HighlightImage, ImageInfo, ModalProps, Tag, UniqueTag, UpdateHistoryProps, actions, colorGradients, initFilter } from './constant/types';
 import InfoPanel from './components/InfoPanel';
 import OrganizePanel from './components/OrganizePanel';
 import FilterPanel from './components/FilterPanel';
 import { AppContext, ModalContext } from './constant/context';
 import { Buffer } from 'buffer';
-import { useAppSettings, useImageFilter, useImageInfos, useUserSettings } from './constant/hooks';
+import { useAppSettings, useChapters, useImageFilter, useImageInfos } from './constant/hooks';
 import ImageScrollView from './components/ImageScrollView';
 import store from './constant/store';
 import { FiDelete } from 'react-icons/fi'
@@ -46,20 +46,19 @@ function Hello() {
   const [updateHistory, setUpdateHistory] = useState<UpdateHistoryProps[]>([])
   const [imageInfo, setImageInfo] = useState<ImageInfo | null>(null)
   const [tags, setTags] = useState<Tag[]>([]);
-  const [chapter, setChapter] = useState<Chapter>({ name: "", images: [], createDate: 0, modifiedDate: 0 })
-  const [chapters, setChapters] = useState<Chapter[]>([])
+  const [cIndex, setChapterIndex] = useState<number>(-1)
   const [addType, setAddType] = useState<string>(actions.ADD_TAG)
   const [currentSource, setCurrentSource] = useState("");
   const [switchTab, setSwitchTab] = useState(false);
   const [isWebUIOpened, setWebUIOpened] = useState(false);
-  const { savedInfos, saveImageInfos, imageFilter, setImageFilter, appSettings } = useContext(AppContext)
+  const { savedInfos, saveImageInfos, imageFilter, setImageFilter, appSettings, chapters, saveChapter } = useContext(AppContext)
   const imagesRef = useRef<any>();
   const pathsRef = useRef<any>([]);
   const imageInfoRef = useRef<ImageInfo | null>();
   const tagsRef = useRef<Tag[]>([]);
   const updateHistoryRef = useRef<UpdateHistoryProps[]>([]);
   const addTypeRef = useRef<string>();
-  const chapterRef = useRef<Chapter>();
+  const cIndexRef = useRef<number>(-1);
   const chaptersRef = useRef<Chapter[]>([]);
   const modalRef = useRef<ModalProps>();
 
@@ -69,7 +68,7 @@ function Hello() {
   tagsRef.current = tags;
   updateHistoryRef.current = updateHistory;
   addTypeRef.current = addType;
-  chapterRef.current = chapter;
+  cIndexRef.current = cIndex;
   chaptersRef.current = chapters;
   modalRef.current = modal;
 
@@ -77,13 +76,6 @@ function Hello() {
     const rawJSON = await store.get("savedPaths") as string
     if(rawJSON){
       setPaths(JSON.parse(rawJSON))
-    }
-  }
-
-  const loadChapters = async () => {
-    const rawJSON = await store.get("chapters") as string
-    if(rawJSON){
-      setChapters(JSON.parse(rawJSON))
     }
   }
 
@@ -198,14 +190,7 @@ function Hello() {
       }
     }
     loadDirectoryPaths()
-    loadChapters()
   }, []);
-
-  useEffect(() => {
-    if(chapter.name){
-      setChapter(chapters[chapters.findIndex((c: Chapter) => c.name === chapter.name)])
-    }
-  }, [chapters])
 
   useEffect(() => {
     if(promptLoadedFor !== currentSource){
@@ -491,82 +476,22 @@ function Hello() {
     showInfoPanel = false
   }
 
-  const createChapter = (e: React.KeyboardEvent) => {
-    if(e.code === "Enter"){
-      let newChapters: Chapter[] = [...chaptersRef.current];
-      const input = (document.querySelector("#add_chapter_input") as HTMLInputElement);
-      const chapterName = input.value;
-      if(newChapters.findIndex(c => c.name === chapterName) !== -1){
-        setModal({ visible: true, message: "Chapter existed" })
-        return;
-      }
-      if(chapterName.length >= 3 && chapterName.length <= 40){
-        newChapters.push({ name: chapterName, images: [], createDate: Date.now(), modifiedDate: Date.now() });
-        setChapters(newChapters);
-        store.set("chapters", JSON.stringify(newChapters));
-      }else{
-        setModal({ visible: true, message: "Chapter name must be longer than 2 and lower than 40 characters" })
-      }
-      input.value = ""
-    }
-  }
-
   const onChapterAction = (isAddingImage: boolean) => setAddType(isAddingImage ? actions.ADD_CHAPTER_IMAGE : actions.ADD_TAG)
 
-  const onChapterSelected = (c: Chapter) => setChapter(c)
+  const onChapterSelected = (index: number) => setChapterIndex(index)
 
   const addImageToChapter = (name: string, path: string) => {
-    const newChapters = chaptersRef.current.map(c => {
-      if(c.name === chapterRef.current?.name && c.images?.findIndex(i => i.path === path) === -1){
-        setChapter({ ...c, images: c.images.concat([{ name, path }])})
-        return {
-          ...c,
-          images: c.images?.concat([{ name, path }])
-        }
-      }
-      return c
-    })
-    setChapters(newChapters);
-    store.set("chapters", JSON.stringify(newChapters))
+    if(cIndexRef.current !== -1){
+      let oldChapter = chaptersRef.current[cIndexRef.current]
+      let newChapter: Chapter = { ...oldChapter, images: (oldChapter.images || []).concat([{ name, path }]), modifiedDate: Date.now() }
+      saveChapter(newChapter)
+    }
   }
 
   const onViewingChapter = (chapter: Chapter) => {
     setCurrentSource(chapter.name)
-    setImageFilter({ ...initFilter, sortBy: { type: "", asc: true }})
+    setImageFilter({ ...imageFilter, sortBy: { type: "", asc: true }, extraSettings: { viewByTagOrder: "", withoutSelectedTags: false }})
     setImages(chapter.images || [])
-  }
-
-  const onDeletingChapterImage = (imageIndex: number) => {
-    let newChapter: Chapter = { ...chapter, images: chapter?.images?.slice(0, imageIndex).concat(chapter.images.slice(imageIndex+1)), modifiedDate: Date.now() }
-    let newChapters = chapters.map(c => c.name === newChapter.name ? newChapter : c);
-    store.set("chapters", JSON.stringify(newChapters));
-    setChapters(newChapters)
-    onViewingChapter(newChapter)
-  }
-
-  const onChangingImageIndex = (fromIndex: number, toIndex: number) => {
-    let newChapters: Chapter[] = chapters.map((c: Chapter) => {
-      if(chapter.name === c.name && chapter.images){
-        let newImages = chapter.images.slice(0, fromIndex).concat(chapter.images.slice(fromIndex+1));
-        newImages.splice(Math.max(toIndex-1, 0), 0, chapter.images[fromIndex]);
-        return {
-          ...chapter,
-          images: newImages
-        }
-      }
-      return c
-    })
-    let newChapter: Chapter | undefined = newChapters.find(c => c.name === chapter.name);
-    setChapters(newChapters)
-    if(newChapter){
-      setChapter(newChapter)
-    }
-  }
-
-  const onDeletingChapter = (chapterName: string) => {
-    let newChapters = chapters.filter((c: Chapter) => c.name === chapterName);
-    setChapters(newChapters);
-    store.set("chapters", JSON.stringify(newChapters))
   }
 
   const openFilterPanel = () => {
@@ -775,18 +700,20 @@ function Hello() {
     }
   }
 
-  const onChangingChapterName = (oldName: string, newName: string) => {
-    if(newName.length < 3 || /[^a-zA-Z0-9\s]/g.test(newName)){
-      setModal({ visible: true, message: "Chapter name must contain at least 3 characters and no special characters"})
-    }
-    let newChapters = chapters.map(c => c.name === oldName ? {...c, name: newName} : c)
-    setChapters(newChapters)
-    store.set("chapters", JSON.stringify(newChapters))
-  }
-
   const onCancelUpdateTag = () => setTagModal({ ...tagModal, visible: false })
 
   const toggleTab = () => setSwitchTab(!switchTab)
+
+  const getHighlightImages: () => HighlightImage[] = () => {
+    let images: HighlightImage[] = []
+    if(imageInfo){
+      images.push({ ...imageInfo, highlightType: 1 })
+    }
+    if(chapters[cIndex]?.images){
+      images = images.concat(chapters[cIndex].images?.map(c => ({...c, highlightType: 2})) as HighlightImage[])
+    }
+    return images
+  }
 
   return (
     <div style={{
@@ -843,7 +770,7 @@ function Hello() {
           </div>
           <div className="img_container" onClick={onBlur}>
             <ImageScrollView
-              selectedImage={imageInfo}
+              highlightImages={getHighlightImages()}
               images={images}
               onImageClicked={toFullScreen}
               onImageContextMenu={onImageContextMenu}
@@ -853,23 +780,18 @@ function Hello() {
             />
             <OrganizePanel
               tags={tags}
-              chapter={chapter}
-              chapters={chapters}
+              chapter={chapters[cIndex]}
               updateHistory={updateHistory}
+              currentSource={currentSource}
               addType={addType}
               onTagListChanged={setTags}
-              onChapterInput={createChapter}
               onChapterSelected={onChapterSelected}
               onChapterAction={onChapterAction}
               onViewingChapter={onViewingChapter}
-              onDeletingChapterImage={onDeletingChapterImage}
-              onChangingImageIndex={onChangingImageIndex}
-              onDeletingChapter={onDeletingChapter}
               onQuickMatch={onQuickMatch}
               onQuickExtract={onQuickExtract}
               onUndoUpdate={onUndoUpdate}
               clearHistory={clearHistory}
-              onChangingChapterName={onChangingChapterName}
             />
             <InfoPanel info={imageInfo} onPanelClosed={closeInfoPanel} onImageChanged={setImageInfo}/>
           </div>
@@ -895,9 +817,9 @@ export default function App() {
   const [savedInfos, saveImageInfos] = useImageInfos()
   const [imageFilter, setImageFilter] = useImageFilter()
   const [appSettings, saveAppSettings] = useAppSettings()
-
+  const [chapters, saveChapter] = useChapters()
   return (
-    <AppContext.Provider value={{ savedInfos, saveImageInfos, imageFilter, setImageFilter, appSettings, saveAppSettings }}>
+    <AppContext.Provider value={{ savedInfos, saveImageInfos, imageFilter, setImageFilter, appSettings, saveAppSettings, chapters, saveChapter }}>
       <ModalContext.Provider value={{ modal, setModal }}>
         <Hello />
       </ModalContext.Provider>

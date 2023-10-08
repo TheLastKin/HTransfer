@@ -1,11 +1,11 @@
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import '../componentCss/image_scroll_view.css'
 import { AppContext } from 'renderer/constant/context';
-import { ImageInfo } from 'renderer/constant/types';
+import { HighlightImage, ImageInfo } from 'renderer/constant/types';
 import ImageCard from './ImageCard';
 
 type ImageScrollViewProps = {
-  selectedImage: ImageInfo | null,
+  highlightImages: HighlightImage[],
   images: ImageInfo[],
   onImageClicked: (e: React.MouseEvent, index: number) => void,
   onImageContextMenu: (image: ImageInfo) => void,
@@ -18,7 +18,7 @@ const indexes = [5, 4, 3, 2, 1]
 const maxImageLoad = 30;
 let isLoadingNextPage = false
 
-const ImageScrollView = ({ selectedImage, images, onImageClicked, onImageContextMenu, onImageMouseEnter, onImageMouseLeave, onInfoIconClicked }: ImageScrollViewProps) => {
+const ImageScrollView = ({ highlightImages, images, onImageClicked, onImageContextMenu, onImageMouseEnter, onImageMouseLeave, onInfoIconClicked }: ImageScrollViewProps) => {
   const [page, setPage] = useState(1);
   const [filteredImages, setFilteredImages] = useState<ImageInfo[]>([])
   const { savedInfos, imageFilter, appSettings } = useContext(AppContext)
@@ -34,6 +34,13 @@ const ImageScrollView = ({ selectedImage, images, onImageClicked, onImageContext
   useEffect(() => {
     filterImage()
   }, [imageFilter])
+
+  useEffect(() => {
+    const scrollView = document.querySelector(".image_scroll_view") as HTMLElement;
+    if(scrollView){
+      scrollView.scrollTop = 0
+    }
+  }, [appSettings.showInRow])
 
   const filterImage = () => {
     if(images.length === 0){
@@ -138,6 +145,10 @@ const ImageScrollView = ({ selectedImage, images, onImageClicked, onImageContext
     }
   }
 
+  const getHighlighType = (path: string) => {
+    return highlightImages.find(i => i.path === path)?.highlightType || -1;
+  }
+
   return (
     <div className='image_scroll_view' onScroll={onScroll}>
       {
@@ -147,7 +158,7 @@ const ImageScrollView = ({ selectedImage, images, onImageClicked, onImageContext
             filteredImages.filter((image, index) => index <= maxImageLoad * page).map((image) =>
               <ImageCard
                 image={image}
-                selected={image.path === selectedImage?.path}
+                highlight={getHighlighType(image.path)}
                 index={filteredImages.findIndex(i => i.path === image.path)}
                 onImageClicked={onImageClicked}
                 onImageContextMenu={onImageContextMenu}
@@ -163,7 +174,7 @@ const ImageScrollView = ({ selectedImage, images, onImageClicked, onImageContext
               filteredImages.filter((image, index) => (index+value)%5 === 0 && index <= maxImageLoad * page).map((image) =>
                 <ImageCard
                   image={image}
-                  selected={image.path === selectedImage?.path}
+                  highlight={getHighlighType(image.path)}
                   index={filteredImages.findIndex(i => i.path === image.path)}
                   onImageClicked={onImageClicked}
                   onImageContextMenu={onImageContextMenu}

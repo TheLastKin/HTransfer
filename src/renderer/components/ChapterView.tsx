@@ -1,23 +1,19 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useEffect, useRef, useState } from 'react';
 import { Chapter, ImageInfo, actions, activeColor } from 'renderer/constant/types';
 import { BsFillTriangleFill } from 'react-icons/bs';
 import '../componentCss/chapter_view.css';
 import ChapterContextMenu from './ChapterContextMenu';
 import { IoMdRemoveCircleOutline } from 'react-icons/io'
 import { MdOutlineSwapVerticalCircle } from 'react-icons/md'
+import { AppContext, ModalContext } from 'renderer/constant/context';
 
 type ChapterViewProps = {
   chapter: Chapter;
-  chapters: Chapter[];
   addType: string,
-  onChapterInput: (e: React.KeyboardEvent) => void;
-  onChapterSelected: (chapter: Chapter) => void;
+  currentSource: string,
+  onChapterSelected: (index: number) => void;
   onChapterAction: (isAddingImage: boolean) => void;
   onViewingChapter: (chapter: Chapter) => void;
-  onDeletingChapterImage: (imageIndex: number) => void;
-  onChangingImageIndex: (fromIndex: number, toIndex: number) => void;
-  onChangingChapterName: (fromName: string, toName: string) => void;
-  onDeletingChapter: (chapterName: string) => void;
 };
 
 let editingChapter: Chapter = { name: "", images: [], createDate: 0, modifiedDate: 0 };
@@ -25,22 +21,53 @@ let fromIndex = -1;
 
 function ChapterView({
   chapter,
-  chapters,
   addType,
-  onChapterInput,
+  currentSource,
   onChapterSelected,
   onChapterAction,
   onViewingChapter,
-  onDeletingChapterImage,
-  onChangingImageIndex,
-  onChangingChapterName,
-  onDeletingChapter
 }: ChapterViewProps) {
+  const { chapters, saveChapter } = useContext(AppContext)
+  const { setModal } = useContext(ModalContext)
   const [inputType, setInputType] = useState("Create");
   const [searchText, setSearchText] = useState("");
 
-  const selectChapter = (item: Chapter) => () => {
-    onChapterSelected(item);
+  useEffect(() => {
+    if(chapter){
+      if(editingChapter.name === chapter.name){
+        const imageTab = document.querySelector(".chapter_image_tab") as HTMLElement;
+        imageTab.scrollTop = imageTab.scrollHeight
+      }else{
+        editingChapter = chapter;
+      }
+    }
+  }, [chapter])
+
+  const onDeletingChapterImage = (imageIndex: number) => {
+    let newChapter: Chapter = { ...chapter, images: chapter?.images?.slice(0, imageIndex).concat(chapter.images.slice(imageIndex+1)), modifiedDate: Date.now() }
+    saveChapter(newChapter)
+    if(currentSource === newChapter.name){
+      onViewingChapter(newChapter)
+    }
+  }
+
+  const onChangingImageIndex = (fromIndex: number, toIndex: number) => {
+    let oldImages = chapter.images || [];
+    let newImages = oldImages.slice(0, fromIndex).concat(oldImages.slice(fromIndex+1))
+    newImages.splice(Math.max(toIndex-1, 0), 0, oldImages[fromIndex]);
+    let newChapter: Chapter = { ...chapter, images: newImages, modifiedDate: Date.now() }
+    saveChapter(newChapter)
+    if(currentSource === newChapter.name){
+      onViewingChapter(newChapter)
+    }
+  }
+
+  const onDeletingChapter = (chapter: Chapter) => {
+    saveChapter(chapter, true)
+  }
+
+  const selectChapter = (chapterName: string, index: number) => () => {
+    onChapterSelected(index);
     const container = document.querySelector(
       '.tab_view_content'
     ) as HTMLElement;
@@ -49,10 +76,25 @@ function ChapterView({
     ) as HTMLElement;
     const goBackButton = document.querySelector('.go_back') as HTMLElement;
     container.style.left = '-100%';
-    heading.innerText = item.name;
+    heading.innerText = chapterName;
     goBackButton.style.display = 'block';
     onChapterAction(true);
   };
+
+  const validateChapterName = (name: string) => {
+    if(name.length < 3 || /[^a-zA-Z0-9\s]/g.test(name)){
+      setModal({ visible: true, message: "Chapter name must contain at least 3 characters and no special characters"})
+      return false
+    }
+    return true
+  }
+
+  const onChangingChapterName = (newName: string) => {
+    if(validateChapterName(newName)){
+      let newChapter: Chapter = { ...chapter, name: newName }
+      saveChapter(newChapter)
+    }
+  }
 
   const goBack = () => {
     const container = document.querySelector(
@@ -66,31 +108,18 @@ function ChapterView({
     heading.innerText = 'Chapters';
     goBackButton.style.display = 'none';
     onChapterAction(false);
+    onChapterSelected(-1)
   };
-
-  const onMouseEnter = (path: string) => (e: React.MouseEvent) => {
-    const imgCard = document.querySelector(`.image_card[data-path="${path.replace(/\\/g, "\\\\")}"]`) as HTMLElement;
-    if(imgCard){
-      imgCard.className = "image_card image_card_highlight"
-    }
-  }
-
-  const onMouseLeave = (path: string) => (e: React.MouseEvent) => {
-    const imgCard = document.querySelector(`.image_card[data-path="${path.replace(/\\/g, "\\\\")}"]`) as HTMLElement;
-    if(imgCard){
-      imgCard.className = "image_card"
-    }
-  }
 
   const toggleInputType = () => {
     const input = document.querySelector("#chapter_input") as HTMLInputElement;
     input.value = ""
     if(inputType === "Create"){
-      setSearchText("")
       input.placeholder = "Type here to search chapter!"
     }else{
       input.placeholder = "Type here to create a chapter!"
     }
+    setSearchText("")
     setInputType(inputType === "Create" ? "Search" : "Create")
   }
 
@@ -106,7 +135,7 @@ function ChapterView({
       }
     }else if(inputType === "Change name"){
       if(e.code === "Enter"){
-        onChangingChapterName(editingChapter.name, value)
+        onChangingChapterName(value)
         toggleInputType()
       }
     }else{
@@ -116,7 +145,16 @@ function ChapterView({
         if(inputType === "Search"){
           setSearchText(value)
         }else{
-          onChapterInput(e)
+          if(e.code === "Enter"){
+            if(chapters.some(c => c.name === value)){
+              setModal({ visible: true, message: "Chapter exised!" })
+            }else{
+              if(validateChapterName(value)){
+                saveChapter({ name: value, images: [], createDate: Date.now(), modifiedDate: Date.now() });
+                (e.target as HTMLInputElement).value = ""
+              }
+            }
+          }
         }
       }
     }
@@ -142,7 +180,7 @@ function ChapterView({
   }
 
   const handleDeletingChapter = () => {
-    onDeletingChapter(editingChapter.name)
+    onDeletingChapter(editingChapter)
   }
 
   const handleDeletingChapterImage = (imageIndex: number) => () => onDeletingChapterImage(imageIndex)
@@ -190,12 +228,12 @@ function ChapterView({
       <div className="tab_view">
         <div className="tab_view_content">
           <div className="chapter_tab">
-            {chapters.filter(c => c.name.toLowerCase().includes(searchText.toLowerCase())).map((chapter) => (
-              <div className="chapter" onClick={selectChapter(chapter)} onContextMenu={onChapterContext(chapter)}>
+            {chapters.filter(c => c.name.toLowerCase().includes(searchText.toLowerCase())).map((chapter, index) => (
+              <div className="chapter" onClick={selectChapter(chapter.name, index)} onContextMenu={onChapterContext(chapter)}>
                 <div className="chapter_left">
                   <span>{chapter.name}</span>
                   <span>
-                    {chapter.images?.length} images | created:{' '}
+                    {chapter.images?.length || 0} images | created:{' '}
                     {new Date(chapter.createDate).toLocaleDateString()}
                   </span>
                 </div>
@@ -207,7 +245,7 @@ function ChapterView({
             {chapter &&
               (chapter.images!.length > 0 ? (
                 chapter.images!.map((image: ImageInfo, index) => (
-                  <div className="chapter_image" onMouseEnter={onMouseEnter(image.path || "")} onMouseLeave={onMouseLeave(image.path || "")}>
+                  <div className="chapter_image">
                     <div className='chapter_image_name'>{(index+1) + "." + image.name}</div>
                     <MdOutlineSwapVerticalCircle className='change_chapter_image_index' onClick={handleChaningImageIndex(index)}/>
                     <IoMdRemoveCircleOutline className='delete_chapter_image' onClick={handleDeletingChapterImage(index)}/>
