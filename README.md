@@ -1,4 +1,4 @@
-A convenience local image viewer with niche functionalities
+A convenience local image viewer with niche functionalities tailor Stable Diffusion user (A1111)
 ![image](https://github.com/TheLastKin/HTransfer/assets/71256843/55f24d01-ddfe-4941-bf07-8c99a23164ee)
 
 ## How to install
