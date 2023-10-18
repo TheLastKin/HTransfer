@@ -25,7 +25,7 @@ const quickActions = [{
   tooltip: "Quick update action: match the current tags with stable diffusion prompt if available (case insensitive, unmatch tags are ignored)"
 }, {
   type: "Extract SD",
-  tooltip: "Quick update action: extract as common tags from stable diffusion prompt if available (case insensitive, filter out by current tags (masterpiece, best quality or paragraph-like prompt will be filtered by default))"
+  tooltip: "Quick update action: extract as common tags from stable diffusion prompt if available (case insensitive, filter out by current tags (lora, masterpiece, best quality or paragraph-like prompt will be filtered by default))"
 }, {
   type: "Undo",
   tooltip: "Undo all updates in the history list"

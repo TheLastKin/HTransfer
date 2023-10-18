@@ -760,7 +760,7 @@ function Hello() {
               <div className="background" />
               Transfer
             </span>
-            <span className='filter transparent_button' onClick={openFilterPanel}>
+            <span style={{ backgroundColor: imageFilter.selectedTags.length > 0 ? "yellowgreen" : "transparent" }} className='filter transparent_button' onClick={openFilterPanel}>
               <div className="background"></div>
               Filter
             </span>

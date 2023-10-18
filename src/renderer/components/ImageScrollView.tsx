@@ -89,11 +89,12 @@ const ImageScrollView = ({ highlightImages, images, onImageClicked, onImageConte
       }
       if(imageFilter.sortBy.type === "Most relevant"){
         newImages.sort((i1, i2) => {
-          let total1 = i1.tags?.reduce((total, tag) => total + (imageFilter.selectedTags.some(t => t.name === tag.name && t.type === tag.type) ? 2 : 1), 0) || 0
-          let total2 = i2.tags?.reduce((total, tag) => total + (imageFilter.selectedTags.some(t => t.name === tag.name && t.type === tag.type) ? 2 : 1), 0) || 0
+          let total1 = i1.tags?.reduce((total, tag) => total + (imageFilter.selectedTags.some(t => t.name === tag.name && t.type === tag.type) ? 1 : 0), 0) || 0
+          let total2 = i2.tags?.reduce((total, tag) => total + (imageFilter.selectedTags.some(t => t.name === tag.name && t.type === tag.type) ? 1 : 0), 0) || 0
           return imageFilter.sortBy.asc ? total1 - total2 : total2 - total1
         })
         setFilteredImages(newImages)
+        return;
       }
       if(imageFilter.extraSettings.withoutSelectedTags){
         newImages = newImages.filter(image => {
