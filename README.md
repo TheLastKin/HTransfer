@@ -1,6 +1,6 @@
-A convenience local image viewer with niche functionalities
+A convenience local image viewer with niche functionalities tailor Stable Diffusion user (A1111)
 ![image](https://github.com/TheLastKin/HTransfer/assets/71256843/55f24d01-ddfe-4941-bf07-8c99a23164ee)
-
+![image](https://github.com/TheLastKin/HTransfer/assets/71256843/9c1fb2d3-afb1-455a-8290-f7361be0b201)
 ## How to install
 Run the package line in npm scripts (window 64-bit, you may need to install electron-builder)
 Then look into the release\build\win-unpacked folder in the project directory
