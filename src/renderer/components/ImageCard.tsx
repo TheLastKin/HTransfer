@@ -51,6 +51,7 @@ const getAverageRGB = (imgEl: HTMLImageElement) => {
 
 type ImageCardProps = {
   image: ImageInfo,
+  SDprompt: string | undefined,
   index: number,
   highlight: number,
   onImageClicked: (e: React.MouseEvent, index: number) => void,
@@ -60,7 +61,7 @@ type ImageCardProps = {
   onInfoIconClicked: (image: ImageInfo) => void
 }
 
-const ImageCard = ({ image, index, highlight, onImageClicked, onImageContextMenu, onImageMouseEnter, onImageMouseLeave, onInfoIconClicked }: ImageCardProps) => {
+const ImageCard = ({ image, SDprompt, index, highlight, onImageClicked, onImageContextMenu, onImageMouseEnter, onImageMouseLeave, onInfoIconClicked }: ImageCardProps) => {
   const { imageFilter } = useContext(AppContext)
   const viewRef = useRef(null)
   const imageRef = useRef<ImageInfo>()
@@ -150,7 +151,7 @@ const ImageCard = ({ image, index, highlight, onImageClicked, onImageContextMenu
         <div style={{ display: imageFilter.extraInfo.showName ? "flex" : "none" }} className="image_name">
           <span>{image.name}</span>
         </div>
-        {image.SDprompt && <div style={{ display: imageFilter.extraInfo.hasSDPrompt ? "flex" : "none" }} className="sd_image">SD</div>}
+        {SDprompt && <div style={{ display: imageFilter.extraInfo.hasSDPrompt ? "flex" : "none" }} className="sd_image">SD</div>}
       </div>
     </div>
   );

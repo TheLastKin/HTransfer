@@ -202,6 +202,27 @@ function ChapterView({
     return "rgb(223, 219, 15)"
   }
 
+  const showPreviewImage = (source: string) => (e: React.MouseEvent) => {
+    const imagePreview = document.querySelector(".image_preview") as HTMLElement;
+    const imgView = imagePreview.firstChild as HTMLImageElement;
+    const containerBounds = (e.target as HTMLElement).getBoundingClientRect();
+    imgView.src = source
+    imgView.onload = () => {
+      imagePreview.style.left = `${containerBounds.left - 190}px`
+      imagePreview.style.top = `${containerBounds.top - (imgView.clientHeight/2 + 80)}px`
+      imagePreview.style.opacity = "1"
+      imagePreview.style.zIndex = "4"
+    }
+  }
+
+  const onScroll = () => {
+    const imagePreview = document.querySelector(".image_preview") as HTMLElement;
+    if(imagePreview.style.opacity === "1"){
+      imagePreview.style.opacity = "0"
+      imagePreview.style.zIndex = "-1"
+    }
+  }
+
   return (
     <div className="chapter_view">
       <div className="add_chapter">
@@ -241,12 +262,12 @@ function ChapterView({
               </div>
             ))}
           </div>
-          <div className="chapter_image_tab">
+          <div className="chapter_image_tab" onScroll={onScroll}>
             {chapter &&
               (chapter.images!.length > 0 ? (
                 chapter.images!.map((image: ImageInfo, index) => (
                   <div className="chapter_image">
-                    <div className='chapter_image_name'>{(index+1) + "." + image.name}</div>
+                    <div className='chapter_image_name' onClick={showPreviewImage(image.path)}>{(index+1) + "." + image.name}</div>
                     <MdOutlineSwapVerticalCircle className='change_chapter_image_index' onClick={handleChaningImageIndex(index)}/>
                     <IoMdRemoveCircleOutline className='delete_chapter_image' onClick={handleDeletingChapterImage(index)}/>
                   </div>

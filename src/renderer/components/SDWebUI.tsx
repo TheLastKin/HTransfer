@@ -21,7 +21,9 @@ const SDWebUI = ({ visible, setWebUIOpened }: SDWebUIProps) => {
         webUI.src = webUI.src
         setWebUIOpened(true);
       }
-    }).catch(e => setTimeout(checkIfAvailable, 2500))
+    }).catch(e => {
+
+    })
   }
 
   return (

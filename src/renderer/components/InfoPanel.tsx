@@ -9,13 +9,9 @@ type InfoPanelProps = {
   onImageChanged: (info: ImageInfo) => void
 }
 
-const commonTagColor = 'rgb(85, 118, 190)';
-const charTagColor = 'rgb(181, 184, 6)';
-const specialTagColor = 'rgb(221, 34, 50)';
-
 const InfoPanel = ({ info, onPanelClosed, onImageChanged }: InfoPanelProps) => {
   const [SDprops, setSDprops] = useState({ prompt: "", negativePrompt: "", genProps: "" })
-  const { imageFilter, setImageFilter, savedInfos, saveImageInfos } = useContext(AppContext)
+  const { imageFilter, setImageFilter, savedInfos, saveImageInfos, SDProps } = useContext(AppContext)
 
   useEffect(() => {
     if(info?.path){
@@ -24,7 +20,7 @@ const InfoPanel = ({ info, onPanelClosed, onImageChanged }: InfoPanelProps) => {
   }, [info])
 
   const extractSDprops = async () => {
-    let SDdata: string | undefined = info?.SDprompt
+    let SDdata: string | undefined = SDProps.find(prop => prop.ofImage === info?.path)?.prompt
     if(SDdata){
       let split = SDdata.split("\n")
       setSDprops({ prompt: split[0], negativePrompt: split[1], genProps: split[2] })

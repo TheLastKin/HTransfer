@@ -18,10 +18,14 @@ type ImageInfo = {
   width?: number,
   height?: number,
   rating?: number,
-  SDprompt?: string,
   chapters?: string[],
   createdDate?: number,
   lastModifiedDate?: number
+}
+
+type SDProps = {
+  ofImage: string,
+  prompt: string
 }
 
 type UpdateHistoryProps = {
@@ -75,6 +79,11 @@ type AppSettings = {
 
 interface HighlightImage extends ImageInfo{
   highlightType: number
+}
+
+type TransferPermission = {
+  accept: boolean,
+  images: string[]
 }
 
 const commonTagColor = 'rgb(85, 118, 190)';
@@ -147,6 +156,8 @@ export {
   ImageFilter,
   AppSettings,
   HighlightImage,
+  SDProps,
+  TransferPermission,
   commonTagColor,
   charTagColor,
   specialTagColor,

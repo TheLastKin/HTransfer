@@ -4,7 +4,7 @@ import { FcOpenedFolder } from 'react-icons/fc';
 import { BiSolidChevronDown } from 'react-icons/bi';
 import MessageModal from './components/MessageModal';
 import ImageViewer from './components/ImageViewer';
-import { Chapter, HighlightImage, ImageInfo, ModalProps, Tag, UniqueTag, UpdateHistoryProps, actions, colorGradients, initFilter } from './constant/types';
+import { Chapter, HighlightImage, ImageInfo, ModalProps, SDProps, Tag, UniqueTag, UpdateHistoryProps, actions, colorGradients, initFilter } from './constant/types';
 import InfoPanel from './components/InfoPanel';
 import OrganizePanel from './components/OrganizePanel';
 import FilterPanel from './components/FilterPanel';
@@ -18,6 +18,7 @@ import UpdateTagModal from './components/UpdateTagModal';
 import SDWebUI from './components/SDWebUI';
 import { MdOutlineSwitchLeft, MdOutlineSwitchRight } from 'react-icons/md'
 import ExtraSettings from './components/ExtraSettings';
+import ImagePreview from './components/ImagePreview';
 const extract = require('png-chunks-extract')
 const text = require('png-chunk-text')
 
@@ -34,7 +35,6 @@ let showOrganizePanel = true;
 let showInfoPanel = false;
 let isQuickAdding = false;
 let prevUpdatedImage = "";
-let promptLoadedFor = "";
 let stopProcess = false
 
 function Hello() {
@@ -51,7 +51,7 @@ function Hello() {
   const [currentSource, setCurrentSource] = useState("");
   const [switchTab, setSwitchTab] = useState(false);
   const [isWebUIOpened, setWebUIOpened] = useState(false);
-  const { savedInfos, saveImageInfos, imageFilter, setImageFilter, appSettings, chapters, saveChapter } = useContext(AppContext)
+  const { savedInfos, saveImageInfos, imageFilter, setImageFilter, appSettings, chapters, saveChapter, SDProps, setSDProps } = useContext(AppContext)
   const imagesRef = useRef<any>();
   const pathsRef = useRef<any>([]);
   const imageInfoRef = useRef<ImageInfo | null>();
@@ -61,6 +61,9 @@ function Hello() {
   const cIndexRef = useRef<number>(-1);
   const chaptersRef = useRef<Chapter[]>([]);
   const modalRef = useRef<ModalProps>();
+  const webUIRef = useRef(isWebUIOpened);
+  const currentSourceRef = useRef("");
+  const switchTabRef = useRef(switchTab);
 
   imagesRef.current = images;
   pathsRef.current = paths;
@@ -71,6 +74,9 @@ function Hello() {
   cIndexRef.current = cIndex;
   chaptersRef.current = chapters;
   modalRef.current = modal;
+  currentSourceRef.current = currentSource;
+  webUIRef.current = isWebUIOpened;
+  switchTabRef.current = switchTab;
 
   const loadDirectoryPaths = async () => {
     const rawJSON = await store.get("savedPaths") as string
@@ -108,24 +114,13 @@ function Hello() {
     }
   }
 
-  const onExternalFileOpen = (event: any, imagePath: string) => {
-    if(imagePath){
-      isViewingImage = true;
-      const modal = document.querySelector('.image_viewer') as HTMLElement;
-      const imageView = document.querySelector('.viewer_image') as HTMLImageElement;
-      imageView.src = imagePath;
-      modal.style.zIndex = "5";
-      modal.style.opacity = "1";
-      imageView.style.opacity = '1';
-      removeOverlap()
-    }
-  }
-
   useEffect(() => {
     // saveImageInfos([])
     requestAssociatedFile()
-    window.electron.onExternalFileOpen(onExternalFileOpen)
-    document.onkeydown = async (e: KeyboardEvent) => {
+    window.electron.switchTab(() => {
+      toggleTab()
+    })
+    window.onkeydown = async (e: KeyboardEvent) => {
       if(e.code === "F5"){
         const webUI = document.querySelector(".sd_web_ui") as HTMLIFrameElement;
         webUI.src = webUI.src
@@ -178,7 +173,7 @@ function Hello() {
         removeOverlap();
       }
     };
-    document.onkeyup = (e: KeyboardEvent) => {
+    window.onkeyup = (e: KeyboardEvent) => {
       if(e.code.includes("Control") && isQuickAdding){
         isQuickAdding = false
         for(let record of updateHistoryRef.current){
@@ -193,10 +188,7 @@ function Hello() {
   }, []);
 
   useEffect(() => {
-    if(promptLoadedFor !== currentSource){
-      loadSDPrompt()
-      promptLoadedFor = currentSource
-    }
+    loadSDPrompt()
   }, [images])
 
   useEffect(() => {
@@ -249,23 +241,27 @@ function Hello() {
   }
 
   const loadSDPrompt = async () => {
-    let newImages: ImageInfo[] = [...images];
-    for(let i = 0; i < newImages.length; i++){
-      let res = await fetch(newImages[i].path)
-      if(res.status === 200){
-        let buffer = Buffer.from(await res.arrayBuffer());
-        try {
+    let loadingFor = currentSource;
+    let SDProps: SDProps[] = [];
+    for(let i = 0; i < images.length; i++){
+      if(loadingFor !== currentSourceRef.current){
+        break;
+      }
+      try {
+        let res = await fetch(images[i].path)
+        if(res.status === 200){
+          let buffer = Buffer.from(await res.arrayBuffer());
           let chunks = extract(buffer);
           const textChunks = chunks.filter((chunk: any) => chunk.name === "tEXt").map((chunk: any) => text.decode(chunk.data));
           if(textChunks[0]?.text?.includes("Sampler")){
-            newImages[i].SDprompt = textChunks[0].text
+            SDProps.push({ ofImage: images[i].path, prompt: textChunks[0].text })
           }
-        } catch (error) {
-
         }
+      } catch (error) {
+
       }
     }
-    setImages(newImages)
+    if(loadingFor === currentSourceRef.current) setSDProps(SDProps)
   }
 
   const showImageInfo = (info: ImageInfo) => {
@@ -428,6 +424,7 @@ function Hello() {
   const onBlur = () => {
     const dropdown = document.querySelector(".folder_source_dropdown") as HTMLElement;
     const chapterMenu = document.querySelector(".chapter_menu") as HTMLElement;
+    const imagePreview = document.querySelector(".image_preview") as HTMLElement;
     dropdown.style.top = "25"
     dropdown.style.opacity = "0"
     setTimeout(() => {
@@ -435,6 +432,8 @@ function Hello() {
     }, 400)
     showDropDown = false
     chapterMenu.style.display = "none"
+    imagePreview.style.opacity = "0"
+    imagePreview.style.zIndex = "-1"
   }
 
   const onDropdownItemClicked = (path: string) => async (e: React.MouseEvent) => {
@@ -559,9 +558,10 @@ function Hello() {
         stopProcess = false
         return;
       }
-      if(images[i].SDprompt){
+      let SDprompt = SDProps.find(prop => prop.ofImage === images[i].path);
+      if(SDprompt){
         let matchTags: Tag[] = images[i].tags || [];
-        let extractTags: string[] = images[i].SDprompt?.split("\n")[0].replace(/<lora:.{1,}>|\(|\)|\[|\]|\b:\d{1}.{0,1}\d{0,}|\B\s/g, "").split(",") || [];
+        let extractTags: string[] = SDprompt.prompt.split("\n")[0].replace(/<lora:.{1,}>|\(|\)|\[|\]|\b:\d{1}.{0,1}\d{0,}|\B\s/g, "").split(",") || [];
         for(let tag of extractTags){
           let index = tags.findIndex((t: Tag) => tag === t.name);
           if(index !== -1 && !matchTags.some(t => t.name === tags[index].name && t.type === tags[index].type)){
@@ -596,8 +596,9 @@ function Hello() {
         hideProcess(`Process stopped (${i})`)
         return;
       }
-      let SDprompt = images[i].SDprompt?.split("\n")[0];
+      let SDprompt = SDProps.find(prop => prop.ofImage === images[i].path)?.prompt;
       if(SDprompt){
+        SDprompt = SDprompt.split("\n")[0];
         let extractTags = SDprompt.replace(/<lora:.{1,}>|\(|\)|\[|\]|\b:\d{1}.{0,1}\d{0,}|\B\s/g, "").replace(/,\s+/g, ",").split(",");
         let filteredTags: Tag[] = images[i].tags || [];
         for(let tag of extractTags){
@@ -675,7 +676,7 @@ function Hello() {
     for(let i = 0; i < newImages.length; i++){
       let index = newImages[i].tags?.findIndex(t => t.name === tagModal.initialTag.name && t.type === tagModal.initialTag.type)
       if(index !== -1){
-        newImages[i].tags[index] = { ...tag }
+        newImages[i].tags[index] = tag
       }
     }
     saveImageInfos(newImages)
@@ -702,7 +703,7 @@ function Hello() {
 
   const onCancelUpdateTag = () => setTagModal({ ...tagModal, visible: false })
 
-  const toggleTab = () => setSwitchTab(!switchTab)
+  const toggleTab = () => setSwitchTab(!switchTabRef.current)
 
   const getHighlightImages: () => HighlightImage[] = () => {
     let images: HighlightImage[] = []
@@ -794,6 +795,7 @@ function Hello() {
               clearHistory={clearHistory}
             />
             <InfoPanel info={imageInfo} onPanelClosed={closeInfoPanel} onImageChanged={setImageInfo}/>
+            <ImagePreview/>
           </div>
           <MessageModal/>
           <UpdateTagModal {...tagModal} onSubmit={onSubmitUpdateAllTags} onCancel={onCancelUpdateTag} />
@@ -818,8 +820,10 @@ export default function App() {
   const [imageFilter, setImageFilter] = useImageFilter()
   const [appSettings, saveAppSettings] = useAppSettings()
   const [chapters, saveChapter] = useChapters()
+  const [SDProps, setSDProps] = useState<SDProps[]>([])
+
   return (
-    <AppContext.Provider value={{ savedInfos, saveImageInfos, imageFilter, setImageFilter, appSettings, saveAppSettings, chapters, saveChapter }}>
+    <AppContext.Provider value={{ savedInfos, saveImageInfos, imageFilter, setImageFilter, appSettings, saveAppSettings, chapters, saveChapter, SDProps, setSDProps }}>
       <ModalContext.Provider value={{ modal, setModal }}>
         <Hello />
       </ModalContext.Provider>

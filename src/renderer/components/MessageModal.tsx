@@ -30,10 +30,10 @@ const MessageModal = () => {
   }
 
   return (
-    <div className='message_modal'>
+    <div className='modal message_modal'>
       <div className="modal_background" onClick={onBackdropClicked}></div>
-      <div className="message_box">
-        <div className="message_box_content">
+      <div className="modal_box">
+        <div className="modal_box_content">
           <p className="message">{modal.message}</p>
           { modal.onSubmit &&
             <div className='modal_actions'>

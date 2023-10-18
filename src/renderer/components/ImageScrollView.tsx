@@ -3,6 +3,7 @@ import '../componentCss/image_scroll_view.css'
 import { AppContext } from 'renderer/constant/context';
 import { HighlightImage, ImageInfo } from 'renderer/constant/types';
 import ImageCard from './ImageCard';
+import TransferModal from './TransferModal';
 
 type ImageScrollViewProps = {
   highlightImages: HighlightImage[],
@@ -17,11 +18,12 @@ type ImageScrollViewProps = {
 const indexes = [5, 4, 3, 2, 1]
 const maxImageLoad = 30;
 let isLoadingNextPage = false
+let isFirstRender = true;
 
 const ImageScrollView = ({ highlightImages, images, onImageClicked, onImageContextMenu, onImageMouseEnter, onImageMouseLeave, onInfoIconClicked }: ImageScrollViewProps) => {
   const [page, setPage] = useState(1);
   const [filteredImages, setFilteredImages] = useState<ImageInfo[]>([])
-  const { savedInfos, imageFilter, appSettings } = useContext(AppContext)
+  const { savedInfos, imageFilter, appSettings, SDProps } = useContext(AppContext)
   const pageRef = useRef(1)
 
   pageRef.current = page
@@ -32,7 +34,11 @@ const ImageScrollView = ({ highlightImages, images, onImageClicked, onImageConte
   }, [images])
 
   useEffect(() => {
-    filterImage()
+    if(!isFirstRender){
+      filterImage()
+    }else{
+      isFirstRender = false
+    }
   }, [imageFilter])
 
   useEffect(() => {
@@ -158,6 +164,7 @@ const ImageScrollView = ({ highlightImages, images, onImageClicked, onImageConte
             filteredImages.filter((image, index) => index <= maxImageLoad * page).map((image) =>
               <ImageCard
                 image={image}
+                SDprompt={SDProps.find(prop => prop.ofImage === image.path)?.prompt}
                 highlight={getHighlighType(image.path)}
                 index={filteredImages.findIndex(i => i.path === image.path)}
                 onImageClicked={onImageClicked}
@@ -174,6 +181,7 @@ const ImageScrollView = ({ highlightImages, images, onImageClicked, onImageConte
               filteredImages.filter((image, index) => (index+value)%5 === 0 && index <= maxImageLoad * page).map((image) =>
                 <ImageCard
                   image={image}
+                  SDprompt={SDProps.find(prop => prop.ofImage === image.path)?.prompt}
                   highlight={getHighlighType(image.path)}
                   index={filteredImages.findIndex(i => i.path === image.path)}
                   onImageClicked={onImageClicked}
@@ -186,6 +194,7 @@ const ImageScrollView = ({ highlightImages, images, onImageClicked, onImageConte
           </div>
         ))
       }
+      <TransferModal images={filteredImages}/>
     </div>
   );
 };

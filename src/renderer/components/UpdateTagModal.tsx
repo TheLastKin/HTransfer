@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Tag, UniqueTag, getBackgroundColor } from 'renderer/constant/types';
-import '../componentCss/update_tag_modal.css'
+import '../componentCss/modal.css'
 
 type UpdateTagModalProps = {
   visible: boolean,
@@ -57,10 +57,10 @@ const UpdateTagModal = ({ visible, type, initialTag, onSubmit, onCancel }: Updat
   const toggleTagType = () => setTag({ ...tag, type: tag.type === "common" ? "char" : (tag.type === "char" ? "special" : "common") })
 
   return (
-    <div className='update_tag_modal'>
+    <div className='modal update_tag_modal'>
       <div className="modal_background"></div>
-      <div className="message_box">
-        <div className="message_box_content">
+      <div className="modal_box">
+        <div className="modal_box_content">
           <p className="message">{type === "update" ? "Updating"  : "Removing"} all instances of <span style={{ backgroundColor: getBackgroundColor(initialTag.type) }} className='tag'>{initialTag.name}</span> in {initialTag.numberOfOccurence} image(s)</p>
           {
             type === "update" &&

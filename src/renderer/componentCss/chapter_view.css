@@ -159,7 +159,10 @@
     border: none;
   }
   &>.chapter_image_name{
+    display: flex;
+    align-items: center;
     width: calc(100% - 50px);
+    height: 100%;
     cursor: default;
     overflow: hidden;
     text-overflow: ellipsis;

@@ -17,6 +17,7 @@ import fs from 'fs';
 import sizeOf from 'image-size'
 import { ImageInfo } from 'renderer/constant/types';
 import Store from 'electron-store'
+import InstantiateExpress, { setPermission } from './app';
 // import InstantiateExpress from './app';
 
 let stopLoadingImage = false;
@@ -108,6 +109,8 @@ const createWindow = async () => {
     } else {
       mainWindow.show();
     }
+
+    InstantiateExpress(mainWindow)
   });
 
   mainWindow.on('closed', () => {
@@ -118,6 +121,13 @@ const createWindow = async () => {
   mainWindow.webContents.setWindowOpenHandler((edata) => {
     shell.openExternal(edata.url);
     return { action: 'deny' };
+  });
+
+  mainWindow.webContents.on("before-input-event", (e, input) => {
+    if(input.key === "`"){
+      mainWindow?.webContents.send("switchTab")
+      e.preventDefault()
+    }
   });
 
   // Remove this if your app does not use auto updates
@@ -163,6 +173,12 @@ const onRequestAssociatedFile = () => {
 
 const store = new Store()
 
+ipcMain.on('onTransferAccepted', (e, images: string[]) => {
+  setPermission({ accept: true, images })
+})
+ipcMain.on('onTransferDeclined', (e) => {
+  setPermission({ accept: false, images: [] })
+})
 ipcMain.handle('getData', (event, key) => {
   return store.get(key)
 })
@@ -176,31 +192,40 @@ ipcMain.handle("onRequestAssociatedFile", onRequestAssociatedFile)
 ipcMain.handle("chooseDirectory", chooseDirectory)
 ipcMain.handle("onDirectoryChosen", onDirectoryChosen)
 
-const instanceLock = app.requestSingleInstanceLock()
+// const instanceLock = app.requestSingleInstanceLock()
 
-if(!instanceLock){
-  app.quit()
-}else{
-  app.on('second-instance', (event, argv) => {
-    if(mainWindow){
-      if(/.png|.jpg$/i.test(argv[argv.length-1])){
-        mainWindow.webContents.send("onExternalFileOpen", argv[argv.length-1])
-      }
-      if(mainWindow.isMinimized()){
-        mainWindow.restore()
-      }
-      mainWindow.focus()
-    }
-  })
-  app.on('ready', () => {
-    createWindow()
-    app.on('activate', () => {
-      // On macOS it's common to re-create a window in the app when the
-      // dock icon is clicked and there are no other windows open.
-      if (mainWindow === null) createWindow();
-    });
-  })
-}
+// if(!instanceLock){
+//   app.quit()
+// }else{
+//   app.on('second-instance', (event, argv) => {
+//     if(mainWindow){
+//       if(/.png|.jpg$/i.test(argv[argv.length-1])){
+//         mainWindow.webContents.send("onExternalFileOpen", argv[argv.length-1])
+//       }
+//       if(mainWindow.isMinimized()){
+//         mainWindow.restore()
+//       }
+//       mainWindow.focus()
+//     }
+//   })
+//   app.on('ready', () => {
+//     createWindow()
+//     app.on('activate', () => {
+//       // On macOS it's common to re-create a window in the app when the
+//       // dock icon is clicked and there are no other windows open.
+//       if (mainWindow === null) createWindow();
+//     });
+//   })
+// }
+
+app.on('ready', () => {
+  createWindow()
+  app.on('activate', () => {
+    // On macOS it's common to re-create a window in the app when the
+    // dock icon is clicked and there are no other windows open.
+    if (mainWindow === null) createWindow();
+  });
+})
 
 app.on('window-all-closed', () => {
   // Respect the OSX convention of having the application in memory even

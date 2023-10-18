@@ -1,62 +1,79 @@
-// import { ipcMain } from "electron"
-// import fs from "fs"
-// import { Server } from "http"
-// import express from 'express'
-// import http from 'http'
-// import cors from 'cors'
-// import bodyParser from "body-parser"
+import { BrowserWindow, ipcMain } from "electron"
+import fs from "fs"
+import { Server } from "http"
+import express from 'express'
+import http from 'http'
+import cors from 'cors'
+import bodyParser from "body-parser"
+import { TransferPermission } from "renderer/constant/types"
 
-// const app = express()
-// app.use(cors())
-// const server: Server = http.createServer(app)
-// const port = 4000;
+const app = express()
+app.use(cors())
+const server: Server = http.createServer(app)
+const port = 4848;
 
-// const jsonParser = bodyParser.json()
+const jsonParser = bodyParser.json()
 
-// const detectAssociatedFile = () => {
-//   let imagePath = process.argv.find(path => /\.png|\.jpg$/.test(path));
-//   if(imagePath){
-//     let folderPath = imagePath.substring(0, imagePath.lastIndexOf("\\"))
-//     fetch('http://localhost:4000/streamImage', {
-//       method: 'POST',
-//       mode: 'cors',
-//       headers: {
-//         'Content-Type': 'application/json',
-//         'Allow-Control-Access-Origin': '*',
-//       },
-//       body: JSON.stringify({ dirURL: folderPath }),
-//     });
-//   }
-// }
+let permission: TransferPermission | null = null
 
-// export default async function InstantiateExpress(){
+const setPermission = (p: TransferPermission) => {
+  permission = p
+}
 
-//   server.on("error", () => {
+export { setPermission }
 
-//   })
+export default async function InstantiateExpress(mainWindow: BrowserWindow){
 
-//   server.once('listening', () => {
-//     let activeStreamDir: string[] = []
+  server.on("error", () => {
+    console.log("port is in use")
+  })
 
-//     app.post('/streamImage', jsonParser, (req, res) => {
-//       const dirURL = req.body.dirURL || "";
-//       if(dirURL){
-//         if(activeStreamDir.includes(dirURL)){
-//           res.status(200).send({ status: true })
-//         }else {
-//           activeStreamDir.push(dirURL);
-//           app.use(dirURL.substring(2).replace(/\\/g, "/").replace(/ /g, "%20"), express.static(dirURL))
-//           res.status(200).send({ status: true })
-//         }
-//       }else{
-//         res.status(400).send("No directory url")
-//       }
-//     })
+  server.once('listening', () => {
 
-//     detectAssociatedFile()
-//   })
+    app.get('/transferRequest/:deviceName', jsonParser, (req, res) => {
+      if(req.params.deviceName){
+        mainWindow?.webContents.send("onTransferRequest", req.params.deviceName)
+        let intervalCount = 0
+        let intervalID = setInterval(() => {
+          if(intervalCount*350 >= 20000){
+            res.status(408).send("request timeout")
+            clearInterval(intervalID)
+          }
+          if(permission?.accept){
+            res.status(200).json(permission.images)
+            permission = null
+            clearInterval(intervalID)
+          }
+          if(permission?.accept === false){
+            res.status(403)
+            permission = null
+            clearInterval(intervalID)
+          }
+          intervalCount++;
+        }, 350)
+      }else{
+        res.send("should have a name")
+      }
+    })
 
-//   server.listen(port, () => {
-//     console.log("example app running in port ", port)
-//   })
-// }
+    app.get('/getImage/:imageURL', jsonParser, (req, res) => {
+      let imageURL = req.params.imageURL || "";
+      if(imageURL && fs.existsSync(imageURL)){
+        res.sendFile(imageURL, (err) => {
+          if(err){
+            mainWindow?.webContents.send("onTransferError")
+          }else{
+            mainWindow?.webContents.send("onTransferSuccess")
+          }
+        })
+      }else{
+        mainWindow.webContents.send("FileNotExist")
+        res.status(400).send("No file exists")
+      }
+    })
+  })
+
+  server.listen(port, () => {
+    console.log("example app running in port ", port)
+  })
+}
