@@ -62,7 +62,7 @@ type ImageCardProps = {
 }
 
 const ImageCard = ({ image, SDprompt, index, highlight, onImageClicked, onImageContextMenu, onImageMouseEnter, onImageMouseLeave, onInfoIconClicked }: ImageCardProps) => {
-  const { imageFilter } = useContext(AppContext)
+  const { imageFilter, savedInfos, saveImageInfos } = useContext(AppContext)
   const viewRef = useRef(null)
   const imageRef = useRef<ImageInfo>()
 
@@ -133,6 +133,10 @@ const ImageCard = ({ image, SDprompt, index, highlight, onImageClicked, onImageC
     return "image_card"
   }
 
+  const onLoadError = (e: React.SyntheticEvent) => {
+    saveImageInfos(savedInfos.filter(i => i.path === image.path));
+  }
+
   return (
     <div ref={viewRef} className={getClassName()} data-path={image.path}>
       <div className="image_card_content" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
@@ -142,6 +146,7 @@ const ImageCard = ({ image, SDprompt, index, highlight, onImageClicked, onImageC
           crossOrigin='anonymous'
           draggable={false}
           onLoad={onImageLoaded}
+          onError={onLoadError}
           onClick={handleImageClick}
           onContextMenu={handleContextMenu}
         />

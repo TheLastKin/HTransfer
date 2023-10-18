@@ -158,28 +158,29 @@ const ImageScrollView = ({ highlightImages, images, onImageClicked, onImageConte
 
   return (
     <div className='image_scroll_view' onScroll={onScroll}>
+      <TransferModal images={filteredImages}/>
       {
         appSettings.showInRow ?
         <div className="row">
           {
-            filteredImages.filter((image, index) => index <= maxImageLoad * page).map((image) =>
+            filteredImages.filter((image, index) => index <= maxImageLoad * page).map((image, index) =>
               <ImageCard
-                image={image}
-                SDprompt={SDProps.find(prop => prop.ofImage === image.path)?.prompt}
-                highlight={getHighlighType(image.path)}
-                index={filteredImages.findIndex(i => i.path === image.path)}
-                onImageClicked={onImageClicked}
-                onImageContextMenu={onImageContextMenu}
-                onImageMouseEnter={onImageMouseEnter}
-                onImageMouseLeave={onImageMouseLeave}
-                onInfoIconClicked={onInfoIconClicked}
-              />)
+              image={image}
+              SDprompt={SDProps.find(prop => prop.ofImage === image.path)?.prompt}
+              highlight={getHighlighType(image.path)}
+              index={index}
+              onImageClicked={onImageClicked}
+              onImageContextMenu={onImageContextMenu}
+              onImageMouseEnter={onImageMouseEnter}
+              onImageMouseLeave={onImageMouseLeave}
+              onInfoIconClicked={onInfoIconClicked}
+            />)
           }
         </div> :
         indexes.map(value => (
           <div className="column">
             {
-              filteredImages.filter((image, index) => (index+value)%5 === 0 && index <= maxImageLoad * page).map((image) =>
+              filteredImages.filter((image, index) => (index+value)%5 === 0 && index <= maxImageLoad * page).map((image, index) =>
                 <ImageCard
                   image={image}
                   SDprompt={SDProps.find(prop => prop.ofImage === image.path)?.prompt}
@@ -195,7 +196,6 @@ const ImageScrollView = ({ highlightImages, images, onImageClicked, onImageConte
           </div>
         ))
       }
-      <TransferModal images={filteredImages}/>
     </div>
   );
 };
