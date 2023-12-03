@@ -4,7 +4,7 @@ import { FcOpenedFolder } from 'react-icons/fc';
 import { BiSolidChevronDown } from 'react-icons/bi';
 import MessageModal from './components/MessageModal';
 import ImageViewer from './components/ImageViewer';
-import { Chapter, HighlightImage, ImageInfo, ModalProps, SDProps, Tag, UniqueTag, UpdateHistoryProps, actions, colorGradients, initFilter } from './constant/types';
+import { Chapter, HighlightImage, ImageInfo, ModalProps, SDProps, Tag, UniqueTag, UpdateHistoryProps, actions, colorGradients, initFilter, maxImageLoad } from './constant/types';
 import InfoPanel from './components/InfoPanel';
 import OrganizePanel from './components/OrganizePanel';
 import FilterPanel from './components/FilterPanel';
@@ -19,13 +19,13 @@ import SDWebUI from './components/SDWebUI';
 import { MdOutlineSwitchLeft, MdOutlineSwitchRight } from 'react-icons/md'
 import ExtraSettings from './components/ExtraSettings';
 import ImagePreview from './components/ImagePreview';
+import LinkTransferModal from './components/LinkTransferModal';
 const extract = require('png-chunks-extract')
 const text = require('png-chunk-text')
 
 
 // todo unload images -2/+2 page using intersect observer
 
-const maxImageLoad = 30;
 let isFullScreen = false;
 let isViewingImage = false;
 let viewIndex = 0;
@@ -43,6 +43,7 @@ function Hello() {
   const [paths, setPaths] = useState([]);
   const { modal, setModal } = useContext(ModalContext);
   const [tagModal, setTagModal] = useState({ visible: false, type: "update", initialTag: { name: "", type: "common", numberOfOccurence: 0 }})
+  const [transferModal, setTransferModal] = useState(false)
   const [updateHistory, setUpdateHistory] = useState<UpdateHistoryProps[]>([])
   const [imageInfo, setImageInfo] = useState<ImageInfo | null>(null)
   const [tags, setTags] = useState<Tag[]>([]);
@@ -121,9 +122,12 @@ function Hello() {
       toggleTab()
     })
     window.onkeydown = async (e: KeyboardEvent) => {
-      if(e.code === "F5"){
-        const webUI = document.querySelector(".sd_web_ui") as HTMLIFrameElement;
-        webUI.src = webUI.src
+      if(e.code === "F1"){
+        toggleOrganizeView()
+        e.preventDefault()
+      }
+      if(e.code === "F2"){
+        toggleFilterPanel()
         e.preventDefault()
       }
       if(e.code === "Escape" && modalRef.current?.visible){
@@ -273,7 +277,7 @@ function Hello() {
       ...info,
       ...savedInfo,
       chapters: chaptersRef.current
-      .filter((c: Chapter) => c.images?.findIndex(i => i.name === info.name && i.path === info.path) !== -1)
+      .filter((c: Chapter) => c.images?.some(i => i.path === info.path))
       .map((c: Chapter) => c.name) });
     const infoPanel = document.querySelector(".info_panel") as HTMLElement;
     const scrollView = document.querySelector(".image_scroll_view") as HTMLElement;
@@ -382,8 +386,6 @@ function Hello() {
       if(isQuickAdding){
         (document.querySelector(`.image_card[data-path="${path.replace(/\\/g, "\\\\")}"]`) as HTMLElement)!.className = "image_card image_card_highlight"
       }
-    }else{
-      setModal({ visible: true, message: "Oops! No tag to add..." })
     }
   }
 
@@ -493,16 +495,16 @@ function Hello() {
     setImages(chapter.images || [])
   }
 
-  const openFilterPanel = () => {
+  const toggleFilterPanel = () => {
     const panel = document.querySelector(".filter_panel") as HTMLElement;
-    // const lines = document.querySelectorAll(".anchor_background span");
     panel.style.transition = "top 0.6s ease-out";
-    panel.style.top = "0";
     panel.ontransitionend = () => {
       panel.style.transition = ""
-      // for(let i = 1; i <= 4; i++){
-      //   (lines[i-1] as HTMLElement).style.animation = `collapse${i} 0.3s ease-out forwards`;
-      // }
+    }
+    if(panel.style.top === "0px"){
+      panel.style.top = "";
+    }else{
+      panel.style.top = "0";
     }
   }
 
@@ -757,10 +759,10 @@ function Hello() {
             </div>
             <div className="divider" />
             <span className="transfer transparent_button">
-              <div className="background" />
+              <div className="background" onClick={() => setTransferModal(true)}/>
               Transfer
             </span>
-            <span style={{ backgroundColor: imageFilter.selectedTags.length > 0 ? "yellowgreen" : "transparent" }} className='filter transparent_button' onClick={openFilterPanel}>
+            <span style={{ backgroundColor: imageFilter.selectedTags.length > 0 ? "yellowgreen" : "transparent" }} className='filter transparent_button' onClick={toggleFilterPanel}>
               <div className="background"></div>
               Filter
             </span>
@@ -773,6 +775,7 @@ function Hello() {
             <ImageScrollView
               highlightImages={getHighlightImages()}
               images={images}
+              source={currentSource}
               onImageClicked={toFullScreen}
               onImageContextMenu={onImageContextMenu}
               onImageMouseEnter={onImageMouseEnter}
@@ -799,7 +802,8 @@ function Hello() {
           </div>
           <MessageModal/>
           <UpdateTagModal {...tagModal} onSubmit={onSubmitUpdateAllTags} onCancel={onCancelUpdateTag} />
-          <FilterPanel currentSource={currentSource} onUpdatingAllTags={onUpdatingAllTags}/>
+          <LinkTransferModal visible={transferModal} onDismiss={() => setTransferModal(false)}/>
+          <FilterPanel currentSource={currentSource} imageInfos={images} onUpdatingAllTags={onUpdatingAllTags}/>
           <SDWebUI visible={switchTab} setWebUIOpened={setWebUIOpened}/>
           {
             isWebUIOpened &&

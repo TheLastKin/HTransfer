@@ -1,10 +1,7 @@
-import React, { useContext, useEffect, useState, useRef } from 'react';
+import React, { useContext, useEffect, useRef } from 'react';
 import '../componentCss/image_card.css'
-import { ImageInfo } from 'renderer/constant/types';
+import { ImageInfo, maxImageLoad } from 'renderer/constant/types';
 import { AppContext } from 'renderer/constant/context';
-import { Buffer } from 'buffer';
-const extract = require('png-chunks-extract')
-const text = require('png-chunk-text')
 
 const getAverageRGB = (imgEl: HTMLImageElement) => {
   const blockSize = 5; // only visit every 5 pixels
@@ -54,6 +51,7 @@ type ImageCardProps = {
   SDprompt: string | undefined,
   index: number,
   highlight: number,
+  intersect: IntersectionObserver | undefined,
   onImageClicked: (e: React.MouseEvent, index: number) => void,
   onImageContextMenu: (image: ImageInfo) => void,
   onImageMouseEnter: (e: React.MouseEvent, image: ImageInfo) => void,
@@ -61,23 +59,22 @@ type ImageCardProps = {
   onInfoIconClicked: (image: ImageInfo) => void
 }
 
-const ImageCard = ({ image, SDprompt, index, highlight, onImageClicked, onImageContextMenu, onImageMouseEnter, onImageMouseLeave, onInfoIconClicked }: ImageCardProps) => {
-  const { imageFilter, savedInfos, saveImageInfos } = useContext(AppContext)
-  const viewRef = useRef(null)
-  const imageRef = useRef<ImageInfo>()
-
+const ImageCard = ({ image, SDprompt, index, highlight, intersect, onImageClicked, onImageContextMenu, onImageMouseEnter, onImageMouseLeave, onInfoIconClicked }: ImageCardProps) => {
+  const { imageFilter } = useContext(AppContext)
+  const viewRef = useRef<HTMLDivElement | null>(null)
+  const imageRef = useRef<ImageInfo>(image)
   imageRef.current = image
 
   useEffect(() => {
-    const scrollView = document.querySelector(".image_scroll_view") as HTMLElement;
-    const intersect = new IntersectionObserver(entries => entries.forEach(intersectHandler), { root: scrollView, rootMargin: "800px" })
-    if(viewRef.current){
+    if(intersect && viewRef.current){
       intersect.observe(viewRef.current)
     }
     return () => {
-      intersect.disconnect()
+      if(intersect && viewRef.current) {
+        intersect.unobserve(viewRef.current);
+      }
     }
-  }, [])
+  }, [image, intersect])
 
   const onImageLoaded = (e: React.SyntheticEvent) => {
     const img = (e.target as HTMLImageElement);
@@ -88,26 +85,6 @@ const ImageCard = ({ image, SDprompt, index, highlight, onImageClicked, onImageC
     }
     const card = img.parentElement?.parentElement as HTMLElement;
     card.style.aspectRatio = `${img.naturalWidth/img.naturalHeight}`
-  }
-
-  const intersectHandler = (entry: IntersectionObserverEntry) => {
-    if(entry.isIntersecting){
-      mountImage(entry.target.querySelector(".image") as HTMLImageElement)
-    }else if(!entry.isIntersecting && entry.intersectionRatio === 0){
-      unmountImage(entry.target.querySelector(".image") as HTMLImageElement)
-    }
-  }
-
-  const unmountImage = (view: HTMLImageElement) => {
-    if(view.src.length > 0){
-      view.src = ""
-    }
-  }
-
-  const mountImage = (view: HTMLImageElement) => {
-    if(imageRef.current && !view.src.includes(imageRef.current.path)){
-      view.src = imageRef.current.path
-    }
   }
 
   const handleImageClick = (e: React.MouseEvent) => onImageClicked(e, index)
@@ -134,7 +111,7 @@ const ImageCard = ({ image, SDprompt, index, highlight, onImageClicked, onImageC
   }
 
   const onLoadError = (e: React.SyntheticEvent) => {
-    saveImageInfos(savedInfos.filter(i => i.path === image.path));
+    // saveImageInfos(savedInfos.filter(i => i.path === image.path));
   }
 
   return (

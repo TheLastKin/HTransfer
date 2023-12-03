@@ -17,10 +17,7 @@ import fs from 'fs';
 import sizeOf from 'image-size'
 import { ImageInfo } from 'renderer/constant/types';
 import Store from 'electron-store'
-import InstantiateExpress, { setPermission } from './app';
-// import InstantiateExpress from './app';
-
-let stopLoadingImage = false;
+import InstantiateExpress, { setPermission, setURL } from './app';
 
 class AppUpdater {
   constructor() {
@@ -30,8 +27,7 @@ class AppUpdater {
   }
 }
 
-// InstantiateExpress()
-
+let imageRemovalQueue: ImageInfo[] = []
 let mainWindow: BrowserWindow | null = null;
 
 ipcMain.on('ipc-example', async (event, arg) => {
@@ -171,13 +167,17 @@ const onRequestAssociatedFile = () => {
   return process.argv.find(path => /\.png|\.jpg$/.test(path)) || ""
 }
 
+const addToRemovalQueue = (imageInfo: ImageInfo) => {
+  imageRemovalQueue.push(imageInfo)
+}
+
 const store = new Store()
 
-ipcMain.on('onTransferAccepted', (e, images: string[]) => {
-  setPermission({ accept: true, images })
+ipcMain.on('onTransferAccepted', (e, name: string, images: string[]) => {
+  setPermission({ accept: true, name, images })
 })
 ipcMain.on('onTransferDeclined', (e) => {
-  setPermission({ accept: false, images: [] })
+  setPermission({ accept: false, name: "", images: [] })
 })
 ipcMain.handle('getData', (event, key) => {
   return store.get(key)
@@ -188,35 +188,23 @@ ipcMain.on('setData', (event, key, data) => {
 ipcMain.on('toggleFullScreen', (event: any, fullscreen: boolean) => {
   mainWindow?.setFullScreen(fullscreen)
 })
+ipcMain.on('queueForRemoval', (e, imageInfo) => {
+  addToRemovalQueue(imageInfo)
+})
+ipcMain.on('setURL', (event, url) => {
+  setURL(url)
+})
 ipcMain.handle("onRequestAssociatedFile", onRequestAssociatedFile)
 ipcMain.handle("chooseDirectory", chooseDirectory)
 ipcMain.handle("onDirectoryChosen", onDirectoryChosen)
 
-// const instanceLock = app.requestSingleInstanceLock()
-
-// if(!instanceLock){
-//   app.quit()
-// }else{
-//   app.on('second-instance', (event, argv) => {
-//     if(mainWindow){
-//       if(/.png|.jpg$/i.test(argv[argv.length-1])){
-//         mainWindow.webContents.send("onExternalFileOpen", argv[argv.length-1])
-//       }
-//       if(mainWindow.isMinimized()){
-//         mainWindow.restore()
-//       }
-//       mainWindow.focus()
-//     }
-//   })
-//   app.on('ready', () => {
-//     createWindow()
-//     app.on('activate', () => {
-//       // On macOS it's common to re-create a window in the app when the
-//       // dock icon is clicked and there are no other windows open.
-//       if (mainWindow === null) createWindow();
-//     });
-//   })
-// }
+app.on('before-quit', async () => {
+  if(imageRemovalQueue.length > 0){
+    let savedInfos: ImageInfo[] = JSON.parse(await store.get("imageInfos") as string);
+    savedInfos = savedInfos.filter(i => !imageRemovalQueue.some(i2 => i.path === i2.path));
+    store.set("imageInfos", JSON.stringify(savedInfos))
+  }
+})
 
 app.on('ready', () => {
   createWindow()

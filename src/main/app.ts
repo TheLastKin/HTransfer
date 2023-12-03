@@ -15,12 +15,15 @@ const port = 4848;
 const jsonParser = bodyParser.json()
 
 let permission: TransferPermission | null = null
+let url = ""
 
 const setPermission = (p: TransferPermission) => {
   permission = p
 }
 
-export { setPermission }
+const setURL = (u: string) => url = u
+
+export { setPermission, setURL }
 
 export default async function InstantiateExpress(mainWindow: BrowserWindow){
 
@@ -40,7 +43,7 @@ export default async function InstantiateExpress(mainWindow: BrowserWindow){
             clearInterval(intervalID)
           }
           if(permission?.accept){
-            res.status(200).json(permission.images)
+            res.status(200).json({ name: permission.name, images: permission.images })
             permission = null
             clearInterval(intervalID)
           }
@@ -56,10 +59,10 @@ export default async function InstantiateExpress(mainWindow: BrowserWindow){
       }
     })
 
-    app.get('/getImage/:imageURL', jsonParser, (req, res) => {
-      let imageURL = req.params.imageURL || "";
-      if(imageURL && fs.existsSync(imageURL)){
-        res.sendFile(imageURL, (err) => {
+    app.get('/getMedia/:mediaURL', jsonParser, (req, res) => {
+      let mediaURL = req.params.mediaURL || "";
+      if(mediaURL && fs.existsSync(mediaURL)){
+        res.sendFile(mediaURL, (err) => {
           if(err){
             mainWindow?.webContents.send("onTransferError")
           }else{
@@ -71,6 +74,11 @@ export default async function InstantiateExpress(mainWindow: BrowserWindow){
         res.status(400).send("No file exists")
       }
     })
+
+    app.get('/getURL', jsonParser, (req, res) => {
+      res.send(url)
+    })
+
   })
 
   server.listen(port, () => {

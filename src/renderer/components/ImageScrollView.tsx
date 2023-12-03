@@ -1,13 +1,14 @@
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import '../componentCss/image_scroll_view.css'
 import { AppContext } from 'renderer/constant/context';
-import { HighlightImage, ImageInfo } from 'renderer/constant/types';
+import { HighlightImage, ImageInfo, maxImageLoad } from 'renderer/constant/types';
 import ImageCard from './ImageCard';
 import TransferModal from './TransferModal';
 
 type ImageScrollViewProps = {
   highlightImages: HighlightImage[],
   images: ImageInfo[],
+  source: string,
   onImageClicked: (e: React.MouseEvent, index: number) => void,
   onImageContextMenu: (image: ImageInfo) => void,
   onImageMouseEnter: (e: React.MouseEvent, image: ImageInfo) => void,
@@ -16,17 +17,31 @@ type ImageScrollViewProps = {
 }
 
 const indexes = [5, 4, 3, 2, 1]
-const maxImageLoad = 30;
 let isLoadingNextPage = false
 let isFirstRender = true;
 
-const ImageScrollView = ({ highlightImages, images, onImageClicked, onImageContextMenu, onImageMouseEnter, onImageMouseLeave, onInfoIconClicked }: ImageScrollViewProps) => {
+const ImageScrollView = ({ highlightImages, images, source, onImageClicked, onImageContextMenu, onImageMouseEnter, onImageMouseLeave, onInfoIconClicked }: ImageScrollViewProps) => {
   const [page, setPage] = useState(1);
   const [filteredImages, setFilteredImages] = useState<ImageInfo[]>([])
   const { savedInfos, imageFilter, appSettings, SDProps } = useContext(AppContext)
+  const intersectObserver = useRef<IntersectionObserver | undefined>();
   const pageRef = useRef(1)
 
   pageRef.current = page
+
+  useEffect(() => {
+    const scrollView = document.querySelector(".image_scroll_view");
+    if(scrollView){
+      intersectObserver.current = new IntersectionObserver(handleCardIntersection, {
+        root: scrollView,
+        rootMargin: `${scrollView.clientHeight*3}px 0px ${scrollView.clientHeight*3}px 0px`,
+        threshold: 0.2
+      })
+    }
+    return () => {
+      intersectObserver.current?.disconnect()
+    }
+  }, [])
 
   useEffect(() => {
     setPage(1)
@@ -47,6 +62,17 @@ const ImageScrollView = ({ highlightImages, images, onImageClicked, onImageConte
       scrollView.scrollTop = 0
     }
   }, [appSettings.showInRow])
+
+  const handleCardIntersection = (entries: IntersectionObserverEntry[]) => {
+    entries.forEach(entry => {
+      if(entry.isIntersecting && entry.intersectionRatio >= 0.2){
+        let path = (entry.target as HTMLElement).dataset["path"];
+        if(path) ((entry.target as HTMLElement).querySelector("img") as HTMLImageElement).src = path
+      }else{
+        ((entry.target as HTMLElement).querySelector("img") as HTMLImageElement).src = ""
+      }
+    })
+  }
 
   const filterImage = () => {
     if(images.length === 0){
@@ -158,7 +184,7 @@ const ImageScrollView = ({ highlightImages, images, onImageClicked, onImageConte
 
   return (
     <div className='image_scroll_view' onScroll={onScroll}>
-      <TransferModal images={filteredImages}/>
+      <TransferModal source={source} images={filteredImages}/>
       {
         appSettings.showInRow ?
         <div className="row">
@@ -169,6 +195,7 @@ const ImageScrollView = ({ highlightImages, images, onImageClicked, onImageConte
               SDprompt={SDProps.find(prop => prop.ofImage === image.path)?.prompt}
               highlight={getHighlighType(image.path)}
               index={index}
+              intersect={intersectObserver.current}
               onImageClicked={onImageClicked}
               onImageContextMenu={onImageContextMenu}
               onImageMouseEnter={onImageMouseEnter}
@@ -186,6 +213,7 @@ const ImageScrollView = ({ highlightImages, images, onImageClicked, onImageConte
                   SDprompt={SDProps.find(prop => prop.ofImage === image.path)?.prompt}
                   highlight={getHighlighType(image.path)}
                   index={filteredImages.findIndex(i => i.path === image.path)}
+                  intersect={intersectObserver.current}
                   onImageClicked={onImageClicked}
                   onImageContextMenu={onImageContextMenu}
                   onImageMouseEnter={onImageMouseEnter}

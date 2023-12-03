@@ -34,7 +34,7 @@ function ChapterView({
 
   useEffect(() => {
     if(chapter){
-      if(editingChapter.name === chapter.name){
+      if(editingChapter.name === chapter.name && editingChapter.images?.length !== chapter.images?.length){
         const imageTab = document.querySelector(".chapter_image_tab") as HTMLElement;
         imageTab.scrollTop = imageTab.scrollHeight
       }else{
@@ -209,7 +209,7 @@ function ChapterView({
     imgView.src = source
     imgView.onload = () => {
       imagePreview.style.left = `${containerBounds.left - 190}px`
-      imagePreview.style.top = `${containerBounds.top - (imgView.clientHeight/2 + 80)}px`
+      imagePreview.style.top = `${Math.min(containerBounds.top - (imgView.clientHeight/2 + 90), window.innerHeight - (imgView.clientHeight + 110))}px`
       imagePreview.style.opacity = "1"
       imagePreview.style.zIndex = "4"
     }

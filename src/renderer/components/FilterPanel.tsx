@@ -8,6 +8,7 @@ import { IoMdClose } from 'react-icons/io'
 
 type FilterPanelProps = {
   currentSource: string,
+  imageInfos: ImageInfo[],
   onUpdatingAllTags: (tag: UniqueTag, type: string) => void
 }
 
@@ -19,14 +20,14 @@ let imageSortBy = ["Date created", "Date modified", "Most relevant"]
 let extraInfo = ["Image index", "Image name", "SD Image"]
 let extraSettings = ["By tag order", "Without selected tag"]
 
-const FilterPanel = ({ currentSource, onUpdatingAllTags }: FilterPanelProps) => {
+const FilterPanel = ({ currentSource, imageInfos, onUpdatingAllTags }: FilterPanelProps) => {
   const [tags, setTags] = useState<UniqueTag[]>([])
   const [tagFilter, setTagFilter] = useState({ type: "Alphabet", asc: true, showInGroup: false })
   const [searchText, setSearchText] = useState("")
   const { savedInfos, imageFilter, setImageFilter } = useContext(AppContext)
 
   useEffect(() => {
-    getUniqueTags();
+    getUniqueTags(currentSource.length > 0 ? savedInfos.filter(i => imageInfos.some(i2 => i.path === i2.path)) : savedInfos);
   }, [savedInfos, currentSource])
 
   useEffect(() => {
@@ -35,13 +36,11 @@ const FilterPanel = ({ currentSource, onUpdatingAllTags }: FilterPanelProps) => 
     }
   }, [tagFilter])
 
-  const getUniqueTags = () => {
-    if(savedInfos.length === 0) return;
-
+  const getUniqueTags = (infos: ImageInfo[]) => {
     initialTags = []
 
-    for(let info of savedInfos){
-      if(!info.tags || (currentSource.length > 0 && currentSource !== info.path.substring(0, info.path.lastIndexOf("\\")))) continue;
+    for(let info of infos){
+      if(!info.tags) continue;
 
       for(let tag of info.tags){
         let index = initialTags.findIndex((t) => t.name === tag.name && t.type === tag.type);

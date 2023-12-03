@@ -83,6 +83,7 @@ interface HighlightImage extends ImageInfo{
 
 type TransferPermission = {
   accept: boolean,
+  name: string,
   images: string[]
 }
 
@@ -139,6 +140,7 @@ const colorGradients = [{
   middle: "#a56530",
   bottom: "#c76464"
 }]
+const maxImageLoad = 30;
 
 const getBackgroundColor = (tagType: string) => {
   return tagType === "common" ? commonTagColor : (tagType === "char" ? charTagColor : specialTagColor)
@@ -165,5 +167,6 @@ export {
   actions,
   initFilter,
   colorGradients,
+  maxImageLoad,
   getBackgroundColor
 }

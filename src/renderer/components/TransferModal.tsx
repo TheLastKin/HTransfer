@@ -3,10 +3,11 @@ import '../componentCss/modal.css'
 import { ImageInfo } from 'renderer/constant/types';
 
 type TransferModalProps = {
+  source: string,
   images: ImageInfo[]
 }
 
-const TransferModal = ({ images = [] }: TransferModalProps) => {
+const TransferModal = ({ source, images = [] }: TransferModalProps) => {
   const [modal, setModal] = useState({ visible: false, deviceName: "" })
 
   useEffect(() => {
@@ -34,7 +35,7 @@ const TransferModal = ({ images = [] }: TransferModalProps) => {
   }, [modal])
 
   const handleSubmit = () => {
-    window.electron.onTransferAccepted(images.map(i => i.path))
+    window.electron.onTransferAccepted(source, images.map(i => i.path))
     setModal({...modal, visible: false});
   }
 
