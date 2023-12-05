@@ -9,7 +9,6 @@ import InfoPanel from './components/InfoPanel';
 import OrganizePanel from './components/OrganizePanel';
 import FilterPanel from './components/FilterPanel';
 import { AppContext, ModalContext } from './constant/context';
-import { Buffer } from 'buffer';
 import { useAppSettings, useChapters, useImageFilter, useImageInfos } from './constant/hooks';
 import ImageScrollView from './components/ImageScrollView';
 import store from './constant/store';
@@ -20,11 +19,9 @@ import { MdOutlineSwitchLeft, MdOutlineSwitchRight } from 'react-icons/md'
 import ExtraSettings from './components/ExtraSettings';
 import ImagePreview from './components/ImagePreview';
 import LinkTransferModal from './components/LinkTransferModal';
-const extract = require('png-chunks-extract')
-const text = require('png-chunk-text')
+import { createWorkerFactory, useWorker } from '@shopify/react-web-worker';
 
-
-// todo unload images -2/+2 page using intersect observer
+const createWorker = createWorkerFactory(() => import("./workerFiles/loadSDPrompt"))
 
 let isFullScreen = false;
 let isViewingImage = false;
@@ -65,6 +62,7 @@ function Hello() {
   const webUIRef = useRef(isWebUIOpened);
   const currentSourceRef = useRef("");
   const switchTabRef = useRef(switchTab);
+  const worker = useWorker(createWorker)
 
   imagesRef.current = images;
   pathsRef.current = paths;
@@ -162,6 +160,7 @@ function Hello() {
           setImages(data.images);
           loadImageFromDirectory(data.dirPath)
         }
+        e.preventDefault()
       }
       if (isViewingImage && (e.code === 'ArrowLeft' || e.code === 'ArrowRight')){
         if (e.code === 'ArrowLeft') {
@@ -245,27 +244,16 @@ function Hello() {
   }
 
   const loadSDPrompt = async () => {
-    let loadingFor = currentSource;
-    let SDProps: SDProps[] = [];
+    let loadFor = currentSource;
+    let SDProps: SDProps[] = []
     for(let i = 0; i < images.length; i++){
-      if(loadingFor !== currentSourceRef.current){
-        break;
-      }
-      try {
-        let res = await fetch(images[i].path)
-        if(res.status === 200){
-          let buffer = Buffer.from(await res.arrayBuffer());
-          let chunks = extract(buffer);
-          const textChunks = chunks.filter((chunk: any) => chunk.name === "tEXt").map((chunk: any) => text.decode(chunk.data));
-          if(textChunks[0]?.text?.includes("Sampler")){
-            SDProps.push({ ofImage: images[i].path, prompt: textChunks[0].text })
-          }
-        }
-      } catch (error) {
-
+      if(loadFor !== currentSourceRef.current) return;
+      let prop = await worker.loadSDPrompt(images[i]);
+      if(prop){
+        SDProps.push(prop)
       }
     }
-    if(loadingFor === currentSourceRef.current) setSDProps(SDProps)
+    setSDProps(SDProps)
   }
 
   const showImageInfo = (info: ImageInfo) => {
