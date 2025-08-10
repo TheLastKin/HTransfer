@@ -254,6 +254,7 @@ function Hello() {
       }
     }
     setSDProps(SDProps)
+    return null
   }
 
   const showImageInfo = (info: ImageInfo) => {
