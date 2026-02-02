@@ -1,6 +1,6 @@
 type Chapter = {
   name: string,
-  images?: ImageInfo[],
+  medias?: MediaInfo[],
   createDate: number,
   modifiedDate: number,
 }
@@ -10,7 +10,7 @@ type Tag = {
   type: string
 }
 
-type ImageInfo = {
+type MediaInfo = {
   path: string,
   name: string,
   type?: string,
@@ -24,7 +24,7 @@ type ImageInfo = {
 }
 
 type SDProps = {
-  ofImage: string,
+  ofMedia: string,
   prompt: string
 }
 
@@ -55,7 +55,7 @@ type Action = {
   time: number
 }
 
-type ImageFilter = {
+type MediaFilter = {
   selectedTags: Tag[],
   sortBy: {
     type: string,
@@ -77,14 +77,14 @@ type AppSettings = {
   colorScheme: number
 }
 
-interface HighlightImage extends ImageInfo{
+interface HighlightMedia extends MediaInfo{
   highlightType: number
 }
 
 type TransferPermission = {
   accept: boolean,
   name: string,
-  images: string[]
+  medias: string[]
 }
 
 const commonTagColor = 'rgb(85, 118, 190)';
@@ -93,12 +93,12 @@ const specialTagColor = 'rgb(221, 34, 50)';
 const activeColor = 'rgb(122, 245, 122)';
 const actions = {
   ADD_TAG: "ADD_TAG",
-  ADD_TAG_TO_IMAGE: "ADD_TAG_TO_IMAGE",
+  ADD_TAG_TO_MEDIA: "ADD_TAG_TO_MEDIA",
   ADD_CHAPTER: "ADD_CHAPTER",
-  ADD_CHAPTER_IMAGE: "ADD_CHAPTER_IMAGE",
-  DELETE_TAG_FROM_IMAGE: "DELETE_TAG_FROM_IMAGE"
+  ADD_CHAPTER_MEDIA: "ADD_CHAPTER_MEDIA",
+  DELETE_TAG_FROM_MEDIA: "DELETE_TAG_FROM_MEDIA"
 }
-const initFilter: ImageFilter = {
+const initFilter: MediaFilter = {
   selectedTags: [],
   sortBy: {
     type: "Date created",
@@ -140,7 +140,7 @@ const colorGradients = [{
   middle: "#a56530",
   bottom: "#c76464"
 }]
-const maxImageLoad = 30;
+const maxMediaLoad = 30;
 
 const getBackgroundColor = (tagType: string) => {
   return tagType === "common" ? commonTagColor : (tagType === "char" ? charTagColor : specialTagColor)
@@ -148,16 +148,16 @@ const getBackgroundColor = (tagType: string) => {
 
 export {
   Chapter,
-  ImageInfo,
+  MediaInfo,
   UpdateHistoryProps,
   Tag,
   UniqueTag,
   UniqueGroup,
   ModalProps,
   Action,
-  ImageFilter,
+  MediaFilter,
   AppSettings,
-  HighlightImage,
+  HighlightMedia,
   SDProps,
   TransferPermission,
   commonTagColor,
@@ -167,6 +167,6 @@ export {
   actions,
   initFilter,
   colorGradients,
-  maxImageLoad,
+  maxMediaLoad,
   getBackgroundColor
 }

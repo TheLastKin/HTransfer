@@ -1,22 +1,22 @@
 import { useEffect, useState } from "react"
-import { AppSettings, Chapter, ImageFilter, ImageInfo, initFilter } from "./types";
+import { AppSettings, Chapter, MediaFilter, MediaInfo, initFilter } from "./types";
 import store from "./store";
 
-const useImageInfos: () => [a: ImageInfo[], (b: ImageInfo[]) => void] = () => {
-  const [imageInfos, setImageInfos] = useState<ImageInfo[]>([]);
+const useMediaInfos: () => [a: MediaInfo[], (b: MediaInfo[]) => void] = () => {
+  const [imageInfos, setMediaInfos] = useState<MediaInfo[]>([]);
   useEffect(() => {
     (async () => {
       const rawJSON = await store.get("imageInfos") as string;
       if(rawJSON){
-        setImageInfos(JSON.parse(rawJSON))
+        setMediaInfos(JSON.parse(rawJSON))
       }
     })()
   }, [])
-  const saveImageInfos = (infos: ImageInfo[]) => {
+  const saveMediaInfos = (infos: MediaInfo[]) => {
     store.set("imageInfos", JSON.stringify(infos))
-    setImageInfos(infos)
+    setMediaInfos(infos)
   }
-  return [imageInfos, saveImageInfos]
+  return [imageInfos, saveMediaInfos]
 }
 
 const useChapters: () => [a: Chapter[], (b: Chapter, remove?: boolean) => void] = () => {
@@ -44,17 +44,17 @@ const useChapters: () => [a: Chapter[], (b: Chapter, remove?: boolean) => void] 
   return [chapters, saveChapter]
 }
 
-const useImageFilter: () => [a: ImageFilter, b: React.Dispatch<React.SetStateAction<ImageFilter>>] = () => {
-  const [imageFilter, setImageFilter] = useState(initFilter)
+const useMediaFilter: () => [a: MediaFilter, b: React.Dispatch<React.SetStateAction<MediaFilter>>] = () => {
+  const [mediaFilter, setMediaFilter] = useState(initFilter)
   useEffect(() => {
     (async () => {
-      const rawJSON = await store.get("imageFilter") as string;
+      const rawJSON = await store.get("mediaFilter") as string;
       if(rawJSON){
-        setImageFilter(JSON.parse(rawJSON))
+        setMediaFilter(JSON.parse(rawJSON))
       }
     })()
   }, [])
-  return [imageFilter, setImageFilter]
+  return [mediaFilter, setMediaFilter]
 }
 
 const useAppSettings: () => [a: AppSettings, b: (c: AppSettings) => void] = () => {
@@ -75,8 +75,8 @@ const useAppSettings: () => [a: AppSettings, b: (c: AppSettings) => void] = () =
 }
 
 export{
-  useImageInfos,
-  useImageFilter,
+  useMediaInfos,
+  useMediaFilter,
   useAppSettings,
   useChapters
 }

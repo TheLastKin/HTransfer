@@ -1,4 +1,4 @@
-.image_card{
+.media_card{
   position: relative;
   display: block;
   width: 100%;
@@ -7,7 +7,7 @@
   border-radius: 8px;
   box-shadow: 0px 0px 5px 1px rgba(0, 0, 0, 0.15);
   cursor: pointer;
-  &>.image_card_content{
+  &>.media_card_content{
     position: relative;
     width: 100%;
     height: auto;
@@ -15,15 +15,15 @@
     overflow: hidden;
   }
 }
-.image_card_highlight{
+.media_card_highlight{
   border-color: rgb(97, 97, 248);
   box-shadow: 0 0 5px 1px rgba(75, 75, 243);
 }
-.image_card_highlight_2{
+.media_card_highlight_2{
   border-color: rgb(122, 245, 122);
   box-shadow: 0 0 5px 1px rgba(82, 189, 82, 0.65);
 }
-.image{
+.media{
   position: relative;
   display: none;
   width: 100%;
@@ -31,8 +31,8 @@
   border-radius: 8px;
   z-index: 2;
 }
-.image_preload{
-  position: relative;
+.media_preload{
+  position: absolute;
   display: block;
   width: 100%;
   height: 192px;
@@ -41,7 +41,7 @@
   -webkit-backdrop-filter: blur(5px);
   overflow: hidden;
 }
-.image_preload::before{
+.media_preload::before{
   content: '';
   position: absolute;
   width: 100%;
@@ -49,7 +49,7 @@
   border-radius: 8px;
   background-color: rgba(255, 255, 255, 0.05);
 }
-/* .image_preload::after{
+/* .media_preload::after{
   content: '';
   position: absolute;
   width: 100%;
@@ -81,7 +81,7 @@
     bottom: 150%;
   }
 }
-.image_average_color{
+.media_average_color{
   position: absolute;
   width: 100%;
   height: 100%;
@@ -90,7 +90,7 @@
   opacity: 0.45;
   z-index: 1;
 }
-.image_index{
+.media_index{
   position: absolute;
   display: none;
   align-items: center;
@@ -110,7 +110,7 @@
   z-index: 3;
   pointer-events: none;
 }
-.image_name{
+.media_name{
   position: absolute;
   display: none;
   bottom: 0;
@@ -132,7 +132,7 @@
     user-select: none;
   }
 }
-.sd_image{
+.sd_media{
   position: absolute;
   display: none;
   top: 25px;

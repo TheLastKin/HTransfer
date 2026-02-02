@@ -81,7 +81,7 @@ const ExtraSettings = () => {
         <div className="color_schemes">
           {
             colorGradients.map((gradient, index) => (
-              <div style={{
+              <div key={index} style={{
                 background: `linear-gradient(200deg, ${gradient.top} -30%, ${gradient.middle} 48%, ${gradient.bottom} 130%)`,
               }}
               className={`scheme ${appSettings.colorScheme === index ? "active_scheme" : ""}`}

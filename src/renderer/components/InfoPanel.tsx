@@ -1,17 +1,17 @@
 import React, { useContext, useEffect, useState } from 'react';
 import '../componentCss/info_panel.css'
-import { ImageInfo, Tag, getBackgroundColor } from 'renderer/constant/types';
+import { MediaInfo, Tag, getBackgroundColor } from 'renderer/constant/types';
 import { AppContext } from 'renderer/constant/context';
 
 type InfoPanelProps = {
-  info: ImageInfo | null,
+  info: MediaInfo | null,
   onPanelClosed: () => void,
-  onImageChanged: (info: ImageInfo) => void
+  onMediaChanged: (info: MediaInfo) => void
 }
 
-const InfoPanel = ({ info, onPanelClosed, onImageChanged }: InfoPanelProps) => {
+const InfoPanel = ({ info, onPanelClosed, onMediaChanged }: InfoPanelProps) => {
   const [SDprops, setSDprops] = useState({ prompt: "", negativePrompt: "", genProps: "" })
-  const { imageFilter, setImageFilter, savedInfos, saveImageInfos, SDProps } = useContext(AppContext)
+  const { mediaFilter, setMediaFilter, savedInfos, saveMediaInfos, SDProps } = useContext(AppContext)
 
   useEffect(() => {
     if(info?.path){
@@ -20,7 +20,7 @@ const InfoPanel = ({ info, onPanelClosed, onImageChanged }: InfoPanelProps) => {
   }, [info])
 
   const extractSDprops = async () => {
-    let SDdata: string | undefined = SDProps.find(prop => prop.ofImage === info?.path)?.prompt
+    let SDdata: string | undefined = SDProps.find(prop => prop.ofMedia === info?.path)?.prompt
     if(SDdata){
       let split = SDdata.split("\n")
       setSDprops({ prompt: split[0], negativePrompt: split[1], genProps: split[2] })
@@ -30,16 +30,16 @@ const InfoPanel = ({ info, onPanelClosed, onImageChanged }: InfoPanelProps) => {
   }
 
   const selectTag = (tag: Tag) => () => {
-    if(!imageFilter.selectedTags.some(t => t.name === tag.name && t.type === tag.type)){
-      setImageFilter({ ...imageFilter, selectedTags: [...imageFilter.selectedTags, tag]})
+    if(!mediaFilter.selectedTags.some(t => t.name === tag.name && t.type === tag.type)){
+      setMediaFilter({ ...mediaFilter, selectedTags: [...mediaFilter.selectedTags, tag]})
     }
   }
 
   const deleteTag = (tag: Tag) => () => {
     if(info){
-      let newInfo: ImageInfo = { ...info, tags: info.tags?.filter(t => t.name !== tag.name || t.type !== tag.type) }
-      saveImageInfos(savedInfos.map(i => i.path === newInfo.path ? newInfo : i))
-      onImageChanged(newInfo)
+      let newInfo: MediaInfo = { ...info, tags: info.tags?.filter(t => t.name !== tag.name || t.type !== tag.type) }
+      saveMediaInfos(savedInfos.map(i => i.path === newInfo.path ? newInfo : i))
+      onMediaChanged(newInfo)
     }
   }
 

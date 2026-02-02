@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import '../componentCss/modal.css'
-import { ImageInfo } from 'renderer/constant/types';
+import { MediaInfo } from 'renderer/constant/types';
 
 type TransferModalProps = {
   source: string,
-  images: ImageInfo[]
+  medias: MediaInfo[]
 }
 
-const TransferModal = ({ source, images = [] }: TransferModalProps) => {
+const TransferModal = ({ source, medias = [] }: TransferModalProps) => {
   const [modal, setModal] = useState({ visible: false, deviceName: "" })
 
   useEffect(() => {
@@ -35,7 +35,7 @@ const TransferModal = ({ source, images = [] }: TransferModalProps) => {
   }, [modal])
 
   const handleSubmit = () => {
-    window.electron.onTransferAccepted(source, images.map(i => i.path))
+    window.electron.onTransferAccepted(source, medias.map(m => m.path))
     setModal({...modal, visible: false});
   }
 
@@ -49,7 +49,7 @@ const TransferModal = ({ source, images = [] }: TransferModalProps) => {
       <div className="modal_background" onClick={onCancel}></div>
       <div className="modal_box">
         <div className="modal_box_content">
-          <div className="message">{images.length} images will be transfer to your device ({modal.deviceName})</div>
+          <div className="message">{medias.length} medias will be transfer to your device ({modal.deviceName})</div>
           <div className='modal_actions'>
             <div className="submit_button" onClick={handleSubmit}>
               Confirm

@@ -61,7 +61,7 @@ const UpdateTagModal = ({ visible, type, initialTag, onSubmit, onCancel }: Updat
       <div className="modal_background"></div>
       <div className="modal_box">
         <div className="modal_box_content">
-          <p className="message">{type === "update" ? "Updating"  : "Removing"} all instances of <span style={{ backgroundColor: getBackgroundColor(initialTag.type) }} className='tag'>{initialTag.name}</span> in {initialTag.numberOfOccurence} image(s)</p>
+          <p className="message">{type === "update" ? "Updating"  : "Removing"} all instances of <span style={{ backgroundColor: getBackgroundColor(initialTag.type) }} className='tag'>{initialTag.name}</span> in {initialTag.numberOfOccurence} media(s)</p>
           {
             type === "update" &&
             <div className="update_tag">

@@ -1,12 +1,12 @@
 import React, { useEffect } from 'react';
 
 type ChapterContextMenuProps = {
-  onShowingImages: () => void,
+  onShowingMedias: () => void,
   onRenamingChapter: () => void,
   onDeletingChapter: () => void
 }
 
-const ChapterContextMenu = ({ onShowingImages, onRenamingChapter, onDeletingChapter }: ChapterContextMenuProps) => {
+const ChapterContextMenu = ({ onShowingMedias, onRenamingChapter, onDeletingChapter }: ChapterContextMenuProps) => {
 
   useEffect(() => {
     const view = document.querySelector(".chapter_menu") as HTMLElement;
@@ -16,7 +16,7 @@ const ChapterContextMenu = ({ onShowingImages, onRenamingChapter, onDeletingChap
   return (
     <div className="chapter_menu">
       <ul>
-        <li onClick={onShowingImages}>Show images</li>
+        <li onClick={onShowingMedias}>Show content</li>
         <li onClick={onRenamingChapter}>Rename</li>
         <li onClick={onDeletingChapter}>Delete</li>
       </ul>

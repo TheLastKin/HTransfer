@@ -9,15 +9,24 @@
  * `./src/main.js` using webpack. This gives us some performance wins.
  */
 import path from 'path';
-import { app, BrowserWindow, shell, ipcMain, dialog, IpcMainInvokeEvent, IpcMainEvent } from 'electron';
+import {
+  app,
+  BrowserWindow,
+  shell,
+  ipcMain,
+  dialog,
+  IpcMainInvokeEvent,
+  IpcMainEvent,
+} from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import { resolveHtmlPath } from './util';
 import fs from 'fs';
-import sizeOf from 'image-size'
-import { ImageInfo } from 'renderer/constant/types';
-import Store from 'electron-store'
+import sizeOf from 'image-size';
+import { MediaInfo } from 'renderer/constant/types';
+import Store from 'electron-store';
 import InstantiateExpress, { setPermission, setURL } from './app';
+import os from 'os';
 
 class AppUpdater {
   constructor() {
@@ -27,12 +36,24 @@ class AppUpdater {
   }
 }
 
-let imageRemovalQueue: ImageInfo[] = []
+let imageRemovalQueue: MediaInfo[] = [];
 let mainWindow: BrowserWindow | null = null;
+
+const nets = os.networkInterfaces();
+const getWifiIp = () => {
+  for (const name of Object.keys(nets)) {
+    if (!nets[name]) return '';
+    for (const net of nets[name]) {
+      if (net.family === 'IPv4' && !net.internal) {
+        return net.address;
+      }
+    }
+  }
+  return '';
+};
 
 ipcMain.on('ipc-example', async (event, arg) => {
   const msgTemplate = (pingPong: string) => `IPC test: ${pingPong}`;
-  console.log(msgTemplate(arg));
   event.reply('ipc-example', msgTemplate('pong'));
 });
 
@@ -40,7 +61,6 @@ if (process.env.NODE_ENV === 'production') {
   const sourceMapSupport = require('source-map-support');
   sourceMapSupport.install();
 }
-
 
 const isDebug =
   process.env.NODE_ENV === 'development' || process.env.DEBUG_PROD === 'true';
@@ -88,11 +108,11 @@ const createWindow = async () => {
         ? path.join(__dirname, 'preload.js')
         : path.join(__dirname, '../../.erb/dll/preload.js'),
       webSecurity: false,
-      webviewTag: true
+      webviewTag: true,
     },
   });
 
-  mainWindow.setMenu(null)
+  mainWindow.setMenu(null);
 
   mainWindow.loadURL(resolveHtmlPath('index.html'));
 
@@ -105,8 +125,8 @@ const createWindow = async () => {
     } else {
       mainWindow.show();
     }
-
-    InstantiateExpress(mainWindow)
+    mainWindow?.webContents.send('getWifiIP', getWifiIp());
+    InstantiateExpress(mainWindow);
   });
 
   mainWindow.on('closed', () => {
@@ -118,14 +138,6 @@ const createWindow = async () => {
     shell.openExternal(edata.url);
     return { action: 'deny' };
   });
-
-  mainWindow.webContents.on("before-input-event", (e, input) => {
-    if(input.key === "`"){
-      mainWindow?.webContents.send("switchTab")
-      e.preventDefault()
-    }
-  });
-
   // Remove this if your app does not use auto updates
   // eslint-disable-next-line
   new AppUpdater();
@@ -137,83 +149,102 @@ const createWindow = async () => {
 
 const readDir = (path: string) => {
   try {
-    const files = fs.readdirSync(path)
-    const images: ImageInfo[] = []
-    for(let file of files){
-      if(/\.png|\.jpg$/i.test(file)){
-        images.push({ ...sizeOf(`${path + "/" + file}`), name: file, createdDate: fs.statSync(`${path + "/" + file}`).birthtimeMs, path: path + "\\" + file })
+    const files = fs.readdirSync(path);
+    const medias: MediaInfo[] = [];
+    for (let file of files) {
+      if (/\.png$|\.jpg$/i.test(file)) {
+        medias.push({
+          ...sizeOf(`${path + '/' + file}`),
+          name: file,
+          createdDate: fs.statSync(`${path + '/' + file}`).birthtimeMs,
+          path: path + '\\' + file,
+        });
+      }else if(/\.mp4$|\.mov$|\.mkv$/i.test(file)) {
+        medias.push({
+          name: file,
+          createdDate: fs.statSync(`${path + '/' + file}`).birthtimeMs,
+          path: path + '\\' + file,
+          width: 0,
+          height: 0
+        });
       }
     }
-    images.sort((a, b) => (b.createdDate || 0) - (a.createdDate || 0))
-    return { dirPath: path, images: images }
+    medias.sort((a, b) => (b.createdDate || 0) - (a.createdDate || 0));
+    return { dirPath: path, medias: medias };
   } catch (error) {
-    return { dirPath: path, images: [] }
+    return { dirPath: path, medias: [] };
   }
-}
+};
 
 const chooseDirectory = async (e: IpcMainInvokeEvent) => {
-  const { filePaths } = await dialog.showOpenDialog({ properties: ["openDirectory"] })
-  if(filePaths.length > 0){
-    return readDir(filePaths[0])
+  const { filePaths } = await dialog.showOpenDialog({
+    properties: ['openDirectory'],
+  });
+  if (filePaths.length > 0) {
+    return readDir(filePaths[0]);
   }
-  return ""
-}
+  return '';
+};
 
 const onDirectoryChosen = (e: IpcMainInvokeEvent, path: string) => {
-  return readDir(path)
-}
+  return readDir(path);
+};
 
 const onRequestAssociatedFile = () => {
-  return process.argv.find(path => /\.png|\.jpg$/.test(path)) || ""
-}
+  return process.argv.find((path) => /\.png|\.jpg$/.test(path)) || '';
+};
 
-const addToRemovalQueue = (imageInfo: ImageInfo) => {
-  imageRemovalQueue.push(imageInfo)
-}
+const addToRemovalQueue = (imageInfo: MediaInfo) => {
+  imageRemovalQueue.push(imageInfo);
+};
 
-const store = new Store()
+const store = new Store();
 
-ipcMain.on('onTransferAccepted', (e, name: string, images: string[]) => {
-  setPermission({ accept: true, name, images })
-})
+ipcMain.on('onTransferAccepted', (e, name: string, medias: string[]) => {
+  setPermission({ accept: true, name, medias });
+});
 ipcMain.on('onTransferDeclined', (e) => {
-  setPermission({ accept: false, name: "", images: [] })
-})
+  setPermission({ accept: false, name: '', medias: [] });
+});
 ipcMain.handle('getData', (event, key) => {
-  return store.get(key)
-})
+  return store.get(key);
+});
 ipcMain.on('setData', (event, key, data) => {
-  store.set(key, data)
-})
+  store.set(key, data);
+});
 ipcMain.on('toggleFullScreen', (event: any, fullscreen: boolean) => {
-  mainWindow?.setFullScreen(fullscreen)
-})
+  mainWindow?.setFullScreen(fullscreen);
+});
 ipcMain.on('queueForRemoval', (e, imageInfo) => {
-  addToRemovalQueue(imageInfo)
-})
+  addToRemovalQueue(imageInfo);
+});
 ipcMain.on('setURL', (event, url) => {
-  setURL(url)
-})
-ipcMain.handle("onRequestAssociatedFile", onRequestAssociatedFile)
-ipcMain.handle("chooseDirectory", chooseDirectory)
-ipcMain.handle("onDirectoryChosen", onDirectoryChosen)
+  setURL(url);
+});
+ipcMain.handle('onRequestAssociatedFile', onRequestAssociatedFile);
+ipcMain.handle('chooseDirectory', chooseDirectory);
+ipcMain.handle('onDirectoryChosen', onDirectoryChosen);
 
 app.on('before-quit', async () => {
-  if(imageRemovalQueue.length > 0){
-    let savedInfos: ImageInfo[] = JSON.parse(await store.get("imageInfos") as string);
-    savedInfos = savedInfos.filter(i => !imageRemovalQueue.some(i2 => i.path === i2.path));
-    store.set("imageInfos", JSON.stringify(savedInfos))
+  if (imageRemovalQueue.length > 0) {
+    let savedInfos: MediaInfo[] = JSON.parse(
+      (await store.get('imageInfos')) as string
+    );
+    savedInfos = savedInfos.filter(
+      (i) => !imageRemovalQueue.some((i2) => i.path === i2.path)
+    );
+    store.set('imageInfos', JSON.stringify(savedInfos));
   }
-})
+});
 
 app.on('ready', () => {
-  createWindow()
+  createWindow();
   app.on('activate', () => {
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
     if (mainWindow === null) createWindow();
   });
-})
+});
 
 app.on('window-all-closed', () => {
   // Respect the OSX convention of having the application in memory even
@@ -222,3 +253,5 @@ app.on('window-all-closed', () => {
     app.quit();
   }
 });
+
+app.whenReady().then(() => {});

@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useRef, useState } from 'react';
-import { Chapter, ImageInfo, actions, activeColor } from 'renderer/constant/types';
+import { Chapter, MediaInfo, actions, activeColor } from 'renderer/constant/types';
 import { BsFillTriangleFill } from 'react-icons/bs';
 import '../componentCss/chapter_view.css';
 import ChapterContextMenu from './ChapterContextMenu';
@@ -12,11 +12,11 @@ type ChapterViewProps = {
   addType: string,
   currentSource: string,
   onChapterSelected: (index: number) => void;
-  onChapterAction: (isAddingImage: boolean) => void;
+  onChapterAction: (isAddingMedia: boolean) => void;
   onViewingChapter: (chapter: Chapter) => void;
 };
 
-let editingChapter: Chapter = { name: "", images: [], createDate: 0, modifiedDate: 0 };
+let editingChapter: Chapter = { name: "", medias: [], createDate: 0, modifiedDate: 0 };
 let fromIndex = -1;
 
 function ChapterView({
@@ -34,28 +34,28 @@ function ChapterView({
 
   useEffect(() => {
     if(chapter){
-      if(editingChapter.name === chapter.name && editingChapter.images?.length !== chapter.images?.length){
-        const imageTab = document.querySelector(".chapter_image_tab") as HTMLElement;
-        imageTab.scrollTop = imageTab.scrollHeight
+      if(editingChapter.name === chapter.name && editingChapter.medias?.length !== chapter.medias?.length){
+        const mediaTab = document.querySelector(".chapter_media_tab") as HTMLElement;
+        mediaTab.scrollTop = mediaTab.scrollHeight
       }else{
         editingChapter = chapter;
       }
     }
   }, [chapter])
 
-  const onDeletingChapterImage = (imageIndex: number) => {
-    let newChapter: Chapter = { ...chapter, images: chapter?.images?.slice(0, imageIndex).concat(chapter.images.slice(imageIndex+1)), modifiedDate: Date.now() }
+  const onDeletingChapterMedia = (mediaIndex: number) => {
+    let newChapter: Chapter = { ...chapter, medias: chapter?.medias?.slice(0, mediaIndex).concat(chapter.medias.slice(mediaIndex+1)), modifiedDate: Date.now() }
     saveChapter(newChapter)
     if(currentSource === newChapter.name){
       onViewingChapter(newChapter)
     }
   }
 
-  const onChangingImageIndex = (fromIndex: number, toIndex: number) => {
-    let oldImages = chapter.images || [];
-    let newImages = oldImages.slice(0, fromIndex).concat(oldImages.slice(fromIndex+1))
-    newImages.splice(Math.max(toIndex-1, 0), 0, oldImages[fromIndex]);
-    let newChapter: Chapter = { ...chapter, images: newImages, modifiedDate: Date.now() }
+  const onChangingMediaIndex = (fromIndex: number, toIndex: number) => {
+    let oldMedias = chapter.medias || [];
+    let newMedias = oldMedias.slice(0, fromIndex).concat(oldMedias.slice(fromIndex+1))
+    newMedias.splice(Math.max(toIndex-1, 0), 0, oldMedias[fromIndex]);
+    let newChapter: Chapter = { ...chapter, medias: newMedias, modifiedDate: Date.now() }
     saveChapter(newChapter)
     if(currentSource === newChapter.name){
       onViewingChapter(newChapter)
@@ -128,7 +128,7 @@ function ChapterView({
     if(inputType === "Change index"){
       if(e.code === "Enter"){
         if(fromIndex !== -1 && typeof(parseInt(value)) === "number"){
-          onChangingImageIndex(fromIndex, parseInt(value));
+          onChangingMediaIndex(fromIndex, parseInt(value));
           fromIndex = -1
           toggleInputType()
         }
@@ -150,7 +150,7 @@ function ChapterView({
               setModal({ visible: true, message: "Chapter exised!" })
             }else{
               if(validateChapterName(value)){
-                saveChapter({ name: value, images: [], createDate: Date.now(), modifiedDate: Date.now() });
+                saveChapter({ name: value, medias: [], createDate: Date.now(), modifiedDate: Date.now() });
                 (e.target as HTMLInputElement).value = ""
               }
             }
@@ -168,7 +168,7 @@ function ChapterView({
     context.style.display = "block"
   }
 
-  const handleShowingImages = () => onViewingChapter(editingChapter)
+  const handleShowingMedias = () => onViewingChapter(editingChapter)
 
   const handleRenamingChapter = () => {
     setInputType("Change name")
@@ -183,13 +183,13 @@ function ChapterView({
     onDeletingChapter(editingChapter)
   }
 
-  const handleDeletingChapterImage = (imageIndex: number) => () => onDeletingChapterImage(imageIndex)
+  const handleDeletingChapterMedia = (mediaIndex: number) => () => onDeletingChapterMedia(mediaIndex)
 
-  const handleChaningImageIndex = (index: number) => () => {
+  const handleChaningMediaIndex = (index: number) => () => {
     setInputType("Change index")
     fromIndex = index
     const input = document.querySelector("#chapter_input") as HTMLInputElement;
-    input.placeholder = `Change image index from #${index+1} to`
+    input.placeholder = `Change media index from #${index+1} to`
     input.type = "number"
     input.value = ""
     input.focus()
@@ -202,24 +202,24 @@ function ChapterView({
     return "rgb(223, 219, 15)"
   }
 
-  const showPreviewImage = (source: string) => (e: React.MouseEvent) => {
-    const imagePreview = document.querySelector(".image_preview") as HTMLElement;
-    const imgView = imagePreview.firstChild as HTMLImageElement;
-    const containerBounds = (e.target as HTMLElement).getBoundingClientRect();
-    imgView.src = source
-    imgView.onload = () => {
-      imagePreview.style.left = `${containerBounds.left - 190}px`
-      imagePreview.style.top = `${Math.min(containerBounds.top - (imgView.clientHeight/2 + 90), window.innerHeight - (imgView.clientHeight + 110))}px`
-      imagePreview.style.opacity = "1"
-      imagePreview.style.zIndex = "4"
-    }
+  const showPreviewMedia = (source: string) => (e: React.MouseEvent) => {
+    // const mediaPreview = document.querySelector(".media_preview") as HTMLElement;
+    // const imgView = mediaPreview.firstChild as HTMLMediaElement;
+    // const containerBounds = (e.target as HTMLElement).getBoundingClientRect();
+    // imgView.src = source
+    // imgView.onload = () => {
+    //   mediaPreview.style.left = `${containerBounds.left - 190}px`
+    //   mediaPreview.style.top = `${Math.min(containerBounds.top - (imgView.clientHeight/2 + 90), window.innerHeight - (imgView.clientHeight + 110))}px`
+    //   mediaPreview.style.opacity = "1"
+    //   mediaPreview.style.zIndex = "4"
+    // }
   }
 
   const onScroll = () => {
-    const imagePreview = document.querySelector(".image_preview") as HTMLElement;
-    if(imagePreview.style.opacity === "1"){
-      imagePreview.style.opacity = "0"
-      imagePreview.style.zIndex = "-1"
+    const mediaPreview = document.querySelector(".media_preview") as HTMLElement;
+    if(mediaPreview.style.opacity === "1"){
+      mediaPreview.style.opacity = "0"
+      mediaPreview.style.zIndex = "-1"
     }
   }
 
@@ -240,7 +240,7 @@ function ChapterView({
         <BsFillTriangleFill className="go_back" onClick={goBack} />
         <span
           style={{
-            color: addType === actions.ADD_CHAPTER_IMAGE ? activeColor : 'white',
+            color: addType === actions.ADD_CHAPTER_MEDIA ? activeColor : 'white',
           }}
         >
           Chapters
@@ -254,7 +254,7 @@ function ChapterView({
                 <div className="chapter_left">
                   <span>{chapter.name}</span>
                   <span>
-                    {chapter.images?.length || 0} images | created:{' '}
+                    {chapter.medias?.length || 0} medias | created:{' '}
                     {new Date(chapter.createDate).toLocaleDateString()}
                   </span>
                 </div>
@@ -262,26 +262,26 @@ function ChapterView({
               </div>
             ))}
           </div>
-          <div className="chapter_image_tab" onScroll={onScroll}>
+          <div className="chapter_media_tab" onScroll={onScroll}>
             {chapter &&
-              (chapter.images!.length > 0 ? (
-                chapter.images!.map((image: ImageInfo, index) => (
-                  <div className="chapter_image">
-                    <div className='chapter_image_name' onClick={showPreviewImage(image.path)}>{(index+1) + "." + image.name}</div>
-                    <MdOutlineSwapVerticalCircle className='change_chapter_image_index' onClick={handleChaningImageIndex(index)}/>
-                    <IoMdRemoveCircleOutline className='delete_chapter_image' onClick={handleDeletingChapterImage(index)}/>
+              (chapter.medias!.length > 0 ? (
+                chapter.medias!.map((media: MediaInfo, index) => (
+                  <div key={index} className="chapter_media">
+                    <div className='chapter_media_name' onClick={showPreviewMedia(media.path)}>{(index+1) + "." + media.name}</div>
+                    <MdOutlineSwapVerticalCircle className='change_chapter_media_index' onClick={handleChaningMediaIndex(index)}/>
+                    <IoMdRemoveCircleOutline className='delete_chapter_media' onClick={handleDeletingChapterMedia(index)}/>
                   </div>
                 ))
               ) : (
                 <div
                   style={{
                     color:
-                      addType === actions.ADD_CHAPTER_IMAGE ? activeColor : 'white',
+                      addType === actions.ADD_CHAPTER_MEDIA ? activeColor : 'white',
                   }}
-                  className="chapter_no_image"
+                  className="chapter_no_media"
                 >
                   <span>
-                    Right click on images to add to chapter <br />
+                    Right click on medias to add to chapter <br />
                     (hold Ctrl and hover to quick add)
                   </span>
                 </div>
@@ -289,7 +289,7 @@ function ChapterView({
           </div>
         </div>
       </div>
-      <ChapterContextMenu onShowingImages={handleShowingImages} onRenamingChapter={handleRenamingChapter} onDeletingChapter={handleDeletingChapter}/>
+      <ChapterContextMenu onShowingMedias={handleShowingMedias} onRenamingChapter={handleRenamingChapter} onDeletingChapter={handleDeletingChapter}/>
     </div>
   );
 }

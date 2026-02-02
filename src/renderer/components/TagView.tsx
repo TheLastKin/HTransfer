@@ -116,8 +116,8 @@ function TagView({
       </div>
       <div className="tag_actions">
         {
-          quickActions.map(action => (
-            <QuickAction action={action.type} tooltipText={action.tooltip} onQuickAction={handleQuickAction(action.type)}/>
+          quickActions.map((action, index) => (
+            <QuickAction key={index} action={action.type} tooltipText={action.tooltip} onQuickAction={handleQuickAction(action.type)}/>
           ))
         }
       </div>
@@ -147,7 +147,7 @@ function TagView({
           </div>
         ) : (
           <div className="update_records">
-            {updateHistory.map((history, index) => <UpdateHistory name={`${index+1}.${history.name}`} path={history.path} tags={history.tags} status={history.status} />)}
+            {updateHistory.map((history, index) => <UpdateHistory key={index} name={`${index+1}.${history.name}`} path={history.path} tags={history.tags} status={history.status} />)}
           </div>
         )}
       </div>

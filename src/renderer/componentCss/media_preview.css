@@ -1,4 +1,4 @@
-.image_preview{
+.media_preview{
   position: absolute;
   display: flex;
   align-items: center;
@@ -10,7 +10,9 @@
   box-shadow: 0 0 5px 1px rgba(0, 0, 0, 0.35);
   opacity: 0;
   z-index: -1;
-  &>img{
+  &>.viewer_media{
+    position: relative;
+    display: block;
     width: 100%;
     object-fit: contain;
   }

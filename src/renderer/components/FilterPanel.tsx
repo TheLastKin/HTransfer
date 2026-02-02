@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useContext } from 'react';
 import '../componentCss/filter_panel.css';
-import { ImageInfo, Tag, UniqueGroup, UniqueTag, actions, activeColor, charTagColor, commonTagColor, getBackgroundColor, specialTagColor } from 'renderer/constant/types';
+import { MediaInfo, Tag, UniqueGroup, UniqueTag, actions, activeColor, charTagColor, commonTagColor, getBackgroundColor, specialTagColor } from 'renderer/constant/types';
 import { BsArrowUp, BsArrowDown, BsArrowLeft, BsArrowRight } from 'react-icons/bs'
 import { AppContext } from 'renderer/constant/context';
 import { BiSolidChevronRight, BiSolidChevronLeft, BiSearchAlt2, BiSolidChevronDown } from 'react-icons/bi'
@@ -8,7 +8,7 @@ import { IoMdClose } from 'react-icons/io'
 
 type FilterPanelProps = {
   currentSource: string,
-  imageInfos: ImageInfo[],
+  mediaInfos: MediaInfo[],
   onUpdatingAllTags: (tag: UniqueTag, type: string) => void
 }
 
@@ -16,18 +16,18 @@ let anchorPoint = 0
 let initialTags: UniqueTag[] = []
 
 let tagSortBy = ["Alphabet", "Type", "Occurences"]
-let imageSortBy = ["Date created", "Date modified", "Most relevant"]
-let extraInfo = ["Image index", "Image name", "SD Image"]
+let mediaSortBy = ["Date created", "Date modified", "Most relevant"]
+let extraInfo = ["Media index", "Media name", "SD Media"]
 let extraSettings = ["By tag order", "Without selected tag"]
 
-const FilterPanel = ({ currentSource, imageInfos, onUpdatingAllTags }: FilterPanelProps) => {
+const FilterPanel = ({ currentSource, mediaInfos, onUpdatingAllTags }: FilterPanelProps) => {
   const [tags, setTags] = useState<UniqueTag[]>([])
   const [tagFilter, setTagFilter] = useState({ type: "Alphabet", asc: true, showInGroup: false })
   const [searchText, setSearchText] = useState("")
-  const { savedInfos, imageFilter, setImageFilter } = useContext(AppContext)
+  const { savedInfos, mediaFilter, setMediaFilter } = useContext(AppContext)
 
   useEffect(() => {
-    getUniqueTags(currentSource.length > 0 ? savedInfos.filter(i => imageInfos.some(i2 => i.path === i2.path)) : savedInfos);
+    getUniqueTags(currentSource.length > 0 ? savedInfos.filter(i => mediaInfos.some(i2 => i.path === i2.path)) : savedInfos);
   }, [savedInfos, currentSource])
 
   useEffect(() => {
@@ -36,7 +36,7 @@ const FilterPanel = ({ currentSource, imageInfos, onUpdatingAllTags }: FilterPan
     }
   }, [tagFilter])
 
-  const getUniqueTags = (infos: ImageInfo[]) => {
+  const getUniqueTags = (infos: MediaInfo[]) => {
     initialTags = []
 
     for(let info of infos){
@@ -123,33 +123,33 @@ const FilterPanel = ({ currentSource, imageInfos, onUpdatingAllTags }: FilterPan
     return newTags
   }
 
-  const setImageSortBy = (value: string) => () => {
-    if(imageFilter?.sortBy.type === value){
-      setImageFilter({ ...imageFilter, sortBy: { type: value, asc: !imageFilter.sortBy.asc }})
+  const setMediaSortBy = (value: string) => () => {
+    if(mediaFilter?.sortBy.type === value){
+      setMediaFilter({ ...mediaFilter, sortBy: { type: value, asc: !mediaFilter.sortBy.asc }})
     }else{
-      setImageFilter({ ...imageFilter, sortBy: { type: value, asc: true }})
+      setMediaFilter({ ...mediaFilter, sortBy: { type: value, asc: true }})
     }
   }
 
   const setExtraInfo = (key: string) => () => {
-    setImageFilter({ ...imageFilter, extraInfo: { ...imageFilter.extraInfo, [key]: !(imageFilter.extraInfo as any)[key] }})
+    setMediaFilter({ ...mediaFilter, extraInfo: { ...mediaFilter.extraInfo, [key]: !(mediaFilter.extraInfo as any)[key] }})
   }
 
   const setExtraSetting = (type: string) => () => {
     if(type === "by tag order"){
-      let type = imageFilter.extraSettings.viewByTagOrder;
-      setImageFilter({ ...imageFilter, extraSettings: { viewByTagOrder: type.length === 0 ? "leftToRight" : (type === "leftToRight" ? "rightToLeft" : ""), withoutSelectedTags: false }})
+      let type = mediaFilter.extraSettings.viewByTagOrder;
+      setMediaFilter({ ...mediaFilter, extraSettings: { viewByTagOrder: type.length === 0 ? "leftToRight" : (type === "leftToRight" ? "rightToLeft" : ""), withoutSelectedTags: false }})
     }else{
-      setImageFilter({ ...imageFilter, extraSettings: { viewByTagOrder: "", withoutSelectedTags: !imageFilter.extraSettings.withoutSelectedTags }})
+      setMediaFilter({ ...mediaFilter, extraSettings: { viewByTagOrder: "", withoutSelectedTags: !mediaFilter.extraSettings.withoutSelectedTags }})
     }
   }
 
   const selectTag = (tag: Tag) => () => {
-    setImageFilter({ ...imageFilter, selectedTags: imageFilter.selectedTags.concat([tag])})
+    setMediaFilter({ ...mediaFilter, selectedTags: mediaFilter.selectedTags.concat([tag])})
   }
 
   const removeTag = (tag: Tag) => () => {
-    setImageFilter({ ...imageFilter, selectedTags: imageFilter.selectedTags.filter(t => t.name !== tag.name || t.type !== tag.type)})
+    setMediaFilter({ ...mediaFilter, selectedTags: mediaFilter.selectedTags.filter(t => t.name !== tag.name || t.type !== tag.type)})
   }
 
   const onSearching = (e: React.FormEvent) => {
@@ -194,43 +194,43 @@ const FilterPanel = ({ currentSource, imageInfos, onUpdatingAllTags }: FilterPan
     <div className='filter_panel' onClick={blurMenu}>
       <div className="filter_panel_content">
         <div className="filter_panel_left">
-          <div className="image_tag_filter">
+          <div className="media_tag_filter">
             <div>
-              {imageFilter.selectedTags.map((t, index, arr) => (
+              {mediaFilter.selectedTags?.map((t, index, arr) => (
                 <div className='selected_tag'>
                   <div style={{ backgroundColor: getBackgroundColor(t.type) }} className="tag" onClick={removeTag(t)}>
                     {t.name}
                   </div>
-                  {imageFilter.extraSettings.viewByTagOrder.length > 0 && index !== arr.length-1 ? (imageFilter.extraSettings.viewByTagOrder === "leftToRight" ? <BiSolidChevronRight/> : <BiSolidChevronLeft/>) : null}
+                  {mediaFilter.extraSettings.viewByTagOrder.length > 0 && index !== arr.length-1 ? (mediaFilter.extraSettings.viewByTagOrder === "leftToRight" ? <BiSolidChevronRight/> : <BiSolidChevronLeft/>) : null}
                 </div>
               ))}
             </div>
           </div>
-          <div className="image_filters">
-            <div className="image_sort_by">
-              <span>Image sort:</span>
-              {imageSortBy.map(value => (
-                <div style={{ color: imageFilter.sortBy.type === value ? activeColor : "white", opacity: imageFilter.extraSettings.viewByTagOrder.length > 0 ? 0.65 : 1 }} className="radio_group" onClick={setImageSortBy(value)}>
-                  {value === imageFilter?.sortBy.type ? (imageFilter.sortBy.asc ? <BsArrowUp/> : <BsArrowDown/>) : <BsArrowUp/>}
+          <div className="media_filters">
+            <div className="media_sort_by">
+              <span>Media sort:</span>
+              {mediaSortBy.map(value => (
+                <div style={{ color: mediaFilter.sortBy.type === value ? activeColor : "white", opacity: mediaFilter.extraSettings.viewByTagOrder.length > 0 ? 0.65 : 1 }} className="radio_group" onClick={setMediaSortBy(value)}>
+                  {value === mediaFilter?.sortBy.type ? (mediaFilter.sortBy.asc ? <BsArrowUp/> : <BsArrowDown/>) : <BsArrowUp/>}
                   <div className="radio_value">{value}</div>
                 </div>
               ))}
             </div>
-            <div className="image_utils">
+            <div className="media_utils">
               <span>Extra info: </span>
-              {Object.keys(imageFilter.extraInfo).map((key, index) => (
-                <div style={{ color: (imageFilter.extraInfo as any)[key] ? activeColor : "white" }} className="radio_group" onClick={setExtraInfo(key)}>
+              {Object.keys(mediaFilter.extraInfo).map((key, index) => (
+                <div style={{ color: (mediaFilter.extraInfo as any)[key] ? activeColor : "white" }} className="radio_group" onClick={setExtraInfo(key)}>
                   <div className="radio_value">{extraInfo[index]}</div>
                 </div>
               ))}
             </div>
-            <div className="image_extra">
+            <div className="media_extra">
               <span>Extra settings: </span>
-              <div style={{ color: imageFilter.extraSettings.viewByTagOrder.length > 0 ? activeColor : "white" }} className="radio_group" onClick={setExtraSetting("by tag order")}>
-                {imageFilter?.extraSettings.viewByTagOrder === "rightToLeft" ? <BsArrowLeft/> : <BsArrowRight/>}
+              <div style={{ color: mediaFilter.extraSettings.viewByTagOrder.length > 0 ? activeColor : "white" }} className="radio_group" onClick={setExtraSetting("by tag order")}>
+                {mediaFilter?.extraSettings.viewByTagOrder === "rightToLeft" ? <BsArrowLeft/> : <BsArrowRight/>}
                 <div className="radio_value">{extraSettings[0]}</div>
               </div>
-              <div style={{ color: imageFilter.extraSettings.withoutSelectedTags ? activeColor : "white" }} className="radio_group" onClick={setExtraSetting("without selected tags")}>
+              <div style={{ color: mediaFilter.extraSettings.withoutSelectedTags ? activeColor : "white" }} className="radio_group" onClick={setExtraSetting("without selected tags")}>
                 <div className="radio_value">{extraSettings[1]}</div>
               </div>
             </div>
@@ -269,7 +269,7 @@ const FilterPanel = ({ currentSource, imageInfos, onUpdatingAllTags }: FilterPan
                 <div className="tag_list">
                   {tags.filter((tag: UniqueTag) => tag.name.includes(searchText) && (tag.type === group.name || group.name === "All")).map(tag => (
                     <div style={{
-                      display: imageFilter.selectedTags?.some(t => t.name === tag.name && t.type === tag.type) ? "none" : "flex",
+                      display: mediaFilter.selectedTags?.some(t => t.name === tag.name && t.type === tag.type) ? "none" : "flex",
                       backgroundColor: getBackgroundColor(tag.type)
                       }}
                       className="tag"

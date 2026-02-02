@@ -226,7 +226,7 @@
     },
     "linux": {
       "target": [
-        "AppImage"
+        "AppMedia"
       ],
       "category": "Development"
     },

@@ -1,11 +1,11 @@
 import React from 'react'
-import { Action, ImageInfo, ModalProps, ImageFilter, initFilter, AppSettings, Chapter, SDProps } from "./types";
+import { Action, MediaInfo, ModalProps, MediaFilter, initFilter, AppSettings, Chapter, SDProps } from "./types";
 
 const AppContext = React.createContext<{
-  savedInfos: ImageInfo[],
-  saveImageInfos: (infos: ImageInfo[]) => void,
-  imageFilter: ImageFilter,
-  setImageFilter: React.Dispatch<React.SetStateAction<ImageFilter>>,
+  savedInfos: MediaInfo[],
+  saveMediaInfos: (infos: MediaInfo[]) => void,
+  mediaFilter: MediaFilter,
+  setMediaFilter: React.Dispatch<React.SetStateAction<MediaFilter>>,
   appSettings: AppSettings,
   saveAppSettings: (settings: AppSettings) => void,
   chapters: Chapter[],
@@ -14,9 +14,9 @@ const AppContext = React.createContext<{
   setSDProps: (props: SDProps[]) => void
 }>({
   savedInfos: [],
-  saveImageInfos: ([]) => {},
-  imageFilter: initFilter,
-  setImageFilter: ({}) => {},
+  saveMediaInfos: ([]) => {},
+  mediaFilter: initFilter,
+  setMediaFilter: ({}) => {},
   appSettings: { showInRow: false, colorScheme: 0 },
   saveAppSettings: () => {},
   chapters: [],

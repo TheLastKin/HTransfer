@@ -277,7 +277,7 @@
   margin-top: 5px;
   user-select: none;
 }
-.image_tag_filter{
+.media_tag_filter{
   position: relative;
   display: block;
   width: calc(100% - 10px);
@@ -293,26 +293,26 @@
     flex-wrap: wrap;
   }
 }
-.image_filters{
+.media_filters{
   position: relative;
   margin-top: 5px;
   width: 100%;
   height: calc(100% - 97px);
 }
-.image_sort_by{
+.media_sort_by{
   position: relative;
   display: flex;
   width: 100%;
   align-items: center;
 }
-.image_utils{
+.media_utils{
   position: relative;
   display: flex;
   align-items: center;
   width: 100%;
   margin-top: 5px;
 }
-.image_extra{
+.media_extra{
   position: relative;
   display: flex;
   align-items: center;

@@ -210,7 +210,7 @@ body {
 .status_bar>.transparent_button:hover>.background{
   animation: revealBackground 0.3s ease-out forwards;
 }
-.image_overlap{
+.media_overlap{
   position: absolute;
   z-index: 10;
   transition: transform 0.45s ease-out, opacity 0.45s ease-out;

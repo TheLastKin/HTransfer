@@ -13,7 +13,7 @@ type OrganizePanelProps = {
   currentSource: string,
   onTagListChanged: (args: any) => void;
   onChapterSelected: (index: number) => void;
-  onChapterAction: (isAddingImage: boolean) => void;
+  onChapterAction: (isAddingMedia: boolean) => void;
   onViewingChapter: (chapter: Chapter) => void;
   onQuickMatch: () => void;
   onQuickExtract: () => void;

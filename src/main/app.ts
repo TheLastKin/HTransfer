@@ -59,7 +59,7 @@ export default async function InstantiateExpress(mainWindow: BrowserWindow) {
           if (permission?.accept) {
             res
               .status(200)
-              .json({ name: permission.name, images: permission.images });
+              .json({ name: permission.name, medias: permission.medias });
             permission = null;
             clearInterval(intervalID);
           }
@@ -76,15 +76,14 @@ export default async function InstantiateExpress(mainWindow: BrowserWindow) {
     });
 
     app.get('/getMedia', jsonParser, (req, res) => {
-      let mediaURL = (req.query as any).mediaURL || '';
+      let mediaURL = (req.query as any).imageURL || '';
       if (mediaURL && fs.existsSync(mediaURL)) {
         const stats = fs.statSync(mediaURL);
         const fileSize = stats.size;
-        console.log(mediaURL)
         let fileExtension = (mediaURL as string).slice(
           (mediaURL as string).lastIndexOf('.') + 1
         );
-        res.setHeader('Content-Type', `image/${fileExtension}`);
+        res.setHeader('Content-Type', `media/${fileExtension}`);
         res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
         res.setHeader('Content-Length', fileSize);
         fs.createReadStream(mediaURL).pipe(res);
